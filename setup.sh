@@ -148,20 +148,39 @@ check_prerequisites() {
   local osname
   osname=$(uname)
 
-  if [ "${osname}" != "Darwin" ]; then
-    dotfiles_error "This script only supports macOS. Current OS: %s" "${osname}"
+  # Source OS detection utility
+  if [ -f "${DOTFILES}/shared/os-detect.sh" ]; then
+    # shellcheck disable=SC1091
+    source "${DOTFILES}/shared/os-detect.sh"
+  fi
+
+  # Check supported OS
+  if [ "${osname}" != "Darwin" ] && [ "${osname}" != "Linux" ]; then
+    dotfiles_error "This script only supports macOS and Linux. Current OS: %s" "${osname}"
     exit 1
   fi
 
+  dotfiles_info "Operating System: %s" "${osname}"
+
+  # Check for GNU Stow
   if ! command -v stow >/dev/null; then
-    dotfiles_error "GNU Stow is required but was not found. Try: brew install stow"
+    if is_macos; then
+      dotfiles_error "GNU Stow is required but was not found. Try: brew install stow"
+    else
+      dotfiles_error "GNU Stow is required but was not found. Try: sudo apt install stow"
+    fi
     exit 1
   fi
 
   dotfiles_info "Prerequisites check passed"
 
+  # Request sudo access (skip on dry-run)
   if [[ "${DRY_RUN}" == "false" ]]; then
-    dotfiles_info "Requesting sudo access for hostname setup..."
+    if is_macos; then
+      dotfiles_info "Requesting sudo access for hostname setup..."
+    else
+      dotfiles_info "Requesting sudo access for system configuration..."
+    fi
     if ! sudo -v; then
       dotfiles_error "Failed to obtain sudo access"
       exit 1
@@ -170,6 +189,12 @@ check_prerequisites() {
 }
 
 setup_hostname() {
+  # Only set hostname on macOS (uses scutil)
+  if ! is_macos; then
+    dotfiles_info "Skipping hostname setup (macOS only)"
+    return 0
+  fi
+
   dotfiles_echo "Setting HostName..."
 
   local computer_name local_host_name host_name
@@ -225,17 +250,23 @@ setup_directories() {
     fi
   fi
 
-  dotfiles_echo "Checking your system architecture..."
+  # Set package manager prefix based on OS
+  if is_macos; then
+    dotfiles_echo "Checking your system architecture..."
 
-  local arch
-  arch="$(uname -m)"
+    local arch
+    arch="$(uname -m)"
 
-  if [ "${arch}" == "arm64" ]; then
-    dotfiles_info "Apple Silicon detected - setting HOMEBREW_PREFIX to /opt/homebrew"
-    HOMEBREW_PREFIX="/opt/homebrew"
+    if [ "${arch}" == "arm64" ]; then
+      dotfiles_info "Apple Silicon detected - setting HOMEBREW_PREFIX to /opt/homebrew"
+      HOMEBREW_PREFIX="/opt/homebrew"
+    else
+      dotfiles_info "Intel Mac detected - setting HOMEBREW_PREFIX to /usr/local"
+      HOMEBREW_PREFIX="/usr/local"
+    fi
   else
-    dotfiles_info "Intel Mac detected - setting HOMEBREW_PREFIX to /usr/local"
-    HOMEBREW_PREFIX="/usr/local"
+    dotfiles_info "Linux system detected - using /usr prefix"
+    HOMEBREW_PREFIX="/usr"  # Not actually used on Linux, but set for compatibility
   fi
 }
 
@@ -392,11 +423,20 @@ setup_tmux() {
 show_next_steps() {
   echo
   echo "Possible next steps:"
-  echo "-> Install Zap (https://www.zapzsh.com)"
-  echo "-> Install Homebrew packages (brew bundle install)"
+  
+  if is_macos; then
+    echo "-> Install Zap (https://www.zapzsh.com)"
+    echo "-> Install Homebrew packages (brew bundle install)"
+  else
+    echo "-> Install system packages (see linux/packages.list)"
+    echo "-> Run ASDF install: asdf install"
+  fi
+  
   if command -v tmux &>/dev/null; then
     echo "-> Install Tmux plugins with <prefix> + I (https://github.com/tmux-plugins/tpm)"
   fi
+  
+  echo "-> Set up git hooks: ./scripts/setup-git-hooks.sh"
   echo "-> Set up 1Password CLI (https://developer.1password.com/docs/cli)"
   echo "-> Check out documentation for LazyVim (https://www.lazyvim.org/)"
   echo

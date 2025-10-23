@@ -13,6 +13,9 @@ tmux/.config/tmux/plugins
 vim/.netrwhist
 vim/bundle
 
+# Linux local configuration
+.linux.local
+
 # Allow bin/.local/bin directory despite global *.local ignore pattern
 !bin/.local/
 !bin/.local/bin/

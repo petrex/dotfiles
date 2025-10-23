@@ -1,0 +1,181 @@
+# Ubuntu/Debian Package List
+#
+# APT package equivalents to macOS Homebrew Brewfile
+# Install with: sudo apt install $(grep -v '^#' linux/packages.list | xargs)
+#
+# Categories match the Brewfile for easier maintenance
+
+# ============================================================================
+# Core Development Tools
+# ============================================================================
+
+# Build essentials
+build-essential
+cmake
+gcc
+g++
+make
+pkg-config
+
+# Version control
+git
+git-lfs
+
+# Shell and terminal
+bash
+bash-completion
+zsh
+fish
+tmux
+
+# Text editors
+neovim
+vim
+
+# ============================================================================
+# Command Line Utilities
+# ============================================================================
+
+# File operations
+coreutils
+fd-find
+ripgrep
+tree
+rsync
+wget
+curl
+
+# Archive tools
+zip
+unzip
+p7zip-full
+unar
+
+# Text processing
+bat
+jq
+yq
+
+# System monitoring
+btop
+htop
+most
+
+# Network tools
+telnet
+net-tools
+dnsutils
+
+# ============================================================================
+# Development Languages & Runtimes
+# ============================================================================
+
+# Note: Use asdf for language version management instead of system packages
+# python3
+# python3-pip
+# nodejs
+# npm
+# ruby-full
+
+# ============================================================================
+# Database Tools
+# ============================================================================
+
+# PostgreSQL (optional - uncomment if needed)
+# postgresql
+# postgresql-contrib
+# libpq-dev
+
+# Redis (optional)
+# redis-server
+# redis-tools
+
+# SQLite
+sqlite3
+libsqlite3-dev
+
+# ============================================================================
+# Docker (optional)
+# ============================================================================
+
+# docker.io
+# docker-compose
+
+# ============================================================================
+# Additional Development Tools
+# ============================================================================
+
+# AWS CLI
+# awscli
+
+# GitHub CLI
+# gh
+
+# Shellcheck
+shellcheck
+
+# shfmt (install from GitHub releases)
+# https://github.com/mvdan/sh/releases
+
+# Markdown tools
+# pandoc
+
+# YAML tools
+yamllint
+
+# GraphViz
+graphviz
+
+# ============================================================================
+# Libraries and Dependencies
+# ============================================================================
+
+# SSL/TLS
+libssl-dev
+openssl
+
+# YAML
+libyaml-dev
+
+# Readline
+libreadline-dev
+
+# Compression
+zlib1g-dev
+libbz2-dev
+liblzma-dev
+
+# XML
+libxml2-dev
+libxslt1-dev
+
+# Image processing
+libpng-dev
+libjpeg-dev
+libgif-dev
+libwebp-dev
+
+# Font libraries
+fontconfig
+libfontconfig1-dev
+
+# ============================================================================
+# GUI Applications (optional)
+# ============================================================================
+
+# Note: Most GUI apps should be installed via snap or flatpak
+# See linux/snap-packages.list for snap-based applications
+
+# ============================================================================
+# Fonts
+# ============================================================================
+
+fonts-cascadia-code
+fonts-firacode
+fonts-hack
+# fonts-jetbrains-mono (may need PPA)
+
+# Nerd Fonts should be installed manually or via script
+# See: https://github.com/ryanoasis/nerd-fonts
+
+# vim: set filetype=conf:
