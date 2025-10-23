@@ -1,0 +1,252 @@
+#!/bin/sh
+
+# Laptop Local Configuration
+#
+# Copy this file to ~/.laptop.local to customize your laptop setup script.
+# This file is automatically sourced by the laptop script.
+#
+# Laptop script: https://github.com/joshukraine/laptop
+#
+# Usage:
+#   cp local/laptop.local.example ~/.laptop.local
+#   vim ~/.laptop.local
+#   sh mac 2>&1 | tee ~/laptop.log
+
+# =============================================================================
+# PATH Configuration
+# =============================================================================
+
+fancy_echo "Updating PATH..."
+# shellcheck disable=SC2016
+append_to_zshrc 'export PATH="$HOME/.local/bin:$PATH"'
+
+# Add custom paths if needed
+# shellcheck disable=SC2016
+# append_to_zshrc 'export PATH="$HOME/bin:$PATH"'
+
+# =============================================================================
+# Homebrew Packages
+# =============================================================================
+
+fancy_echo "Adding additional Homebrew formulae ..."
+brew bundle --file=- <<EOF
+# Taps
+tap "olets/tap"
+# tap "homebrew/cask-fonts"
+# tap "stripe/stripe-cli"
+
+# Development Tools
+brew "asdf"              # Version manager
+brew "bat"               # Better cat
+brew "diff-so-fancy"     # Better git diffs
+brew "eza"               # Better ls
+brew "fd"                # Better find
+brew "fish"              # Fish shell
+brew "fzf"               # Fuzzy finder
+brew "lazygit"           # Git TUI
+brew "neovim"            # Text editor
+brew "ripgrep"           # Better grep
+brew "shellcheck"        # Shell script linter
+brew "starship"          # Shell prompt
+brew "stow"              # Symlink manager
+brew "tmux"              # Terminal multiplexer
+brew "tree"              # Directory tree viewer
+brew "yamllint"          # YAML linter
+brew "yq"                # YAML processor
+brew "zoxide"            # Better cd
+brew "zsh-abbr"          # Zsh abbreviations
+
+# Optional: Programming Languages
+# brew "go"
+# brew "rust"
+# brew "python"
+# brew "node"
+# brew "php"
+
+# Optional: Database Tools
+# brew "postgresql@17"
+# brew "redis"
+# brew "sqlite"
+
+# Optional: Cloud & DevOps
+# brew "awscli"
+# brew "terraform"
+# brew "ansible"
+# brew "docker"
+# brew "kubectl"
+
+# Optional: Additional Tools
+# brew "gh"              # GitHub CLI
+# brew "jq"              # JSON processor
+# brew "wget"            # File downloader
+# brew "curl"            # HTTP client
+# brew "rsync"           # File sync
+# brew "htop"            # Process viewer
+
+# Fonts
+cask "font-cascadia-code-nf"
+# cask "font-fira-code-nerd-font"
+# cask "font-jetbrains-mono-nerd-font"
+# cask "font-hack-nerd-font"
+
+# Applications
+cask "ghostty"           # Terminal emulator
+# cask "kitty"           # Alternative terminal
+# cask "brave-browser"   # Privacy browser
+# cask "firefox"         # Mozilla browser
+# cask "alfred"          # Spotlight replacement
+# cask "obsidian"        # Note-taking
+# cask "1password"       # Password manager
+
+EOF
+
+# =============================================================================
+# ASDF Language Versions
+# =============================================================================
+
+# Python
+fancy_echo "Installing latest Python ..."
+add_or_update_asdf_plugin "python" "https://github.com/asdf-community/asdf-python.git"
+install_asdf_language "python"
+
+# Uncomment and customize to install specific versions
+# fancy_echo "Installing Python 3.11.7 ..."
+# asdf install python 3.11.7
+# asdf global python 3.11.7
+
+# Lua (required for Neovim)
+fancy_echo "Installing latest Lua ..."
+add_or_update_asdf_plugin "lua" "https://github.com/Stratus3D/asdf-lua.git"
+install_asdf_language "lua"
+
+# Node.js
+# fancy_echo "Installing latest Node.js ..."
+# add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
+# install_asdf_language "nodejs"
+
+# Ruby
+# fancy_echo "Installing latest Ruby ..."
+# add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
+# install_asdf_language "ruby"
+
+# Go
+# fancy_echo "Installing latest Go ..."
+# add_or_update_asdf_plugin "golang" "https://github.com/asdf-community/asdf-golang.git"
+# install_asdf_language "golang"
+
+# =============================================================================
+# Ruby Gems
+# =============================================================================
+
+fancy_echo "Installing basic gems..."
+gem install amazing_print       # Better pretty printing
+gem install bundler            # Dependency management
+gem install foreman            # Process management
+gem install irb-theme-tokyonight # IRB theme
+gem install neovim             # Neovim Ruby provider
+gem install overcommit         # Git hook manager
+gem install rubocop            # Ruby linter
+gem install ruby-lsp           # Ruby language server
+gem install standard           # Ruby style guide
+gem install tmuxinator         # Tmux session manager
+
+# Additional gems
+# gem install rails            # Web framework
+# gem install pry              # Better REPL
+# gem install solargraph       # Ruby language server
+
+# =============================================================================
+# NPM Packages
+# =============================================================================
+
+fancy_echo "Installing basic npm packages..."
+npm install -g http-server     # Simple HTTP server
+npm install -g neovim          # Neovim Node.js provider
+
+# Additional npm packages
+# npm install -g typescript      # TypeScript compiler
+# npm install -g eslint          # JavaScript linter
+# npm install -g prettier        # Code formatter
+# npm install -g live-server     # Live reload server
+# npm install -g yarn            # Alternative package manager
+# npm install -g pnpm            # Fast package manager
+
+# =============================================================================
+# Python Packages
+# =============================================================================
+
+# fancy_echo "Installing basic pip packages..."
+# pip install --upgrade pip
+# pip install neovim           # Neovim Python provider
+# pip install black            # Python formatter
+# pip install flake8           # Python linter
+# pip install mypy             # Python type checker
+# pip install pytest           # Testing framework
+# pip install ipython          # Better Python REPL
+
+# =============================================================================
+# macOS Configuration
+# =============================================================================
+
+# Uncomment to customize macOS settings
+
+# fancy_echo "Configuring macOS settings..."
+
+# Disable press-and-hold for keys in favor of key repeat
+# defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+
+# Set a blazingly fast keyboard repeat rate
+# defaults write NSGlobalDomain KeyRepeat -int 1
+# defaults write NSGlobalDomain InitialKeyRepeat -int 10
+
+# Show hidden files in Finder
+# defaults write com.apple.finder AppleShowAllFiles -bool true
+
+# Show path bar in Finder
+# defaults write com.apple.finder ShowPathbar -bool true
+
+# Show status bar in Finder
+# defaults write com.apple.finder ShowStatusBar -bool true
+
+# Disable natural scrolling
+# defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
+
+# =============================================================================
+# Custom Setup Steps
+# =============================================================================
+
+# Add any custom setup steps here
+
+# fancy_echo "Setting up custom directories..."
+# mkdir -p ~/projects ~/projects/personal ~/projects/work
+
+# fancy_echo "Cloning dotfiles..."
+# if [ ! -d "$HOME/dotfiles" ]; then
+#   git clone https://github.com/yourusername/dotfiles.git ~/dotfiles
+# fi
+
+# fancy_echo "Installing oh-my-zsh..."
+# if [ ! -d "$HOME/.oh-my-zsh" ]; then
+#   sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+# fi
+
+# fancy_echo "Setting up SSH keys..."
+# if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
+#   ssh-keygen -t ed25519 -C "your.email@example.com" -f "$HOME/.ssh/id_ed25519" -N ""
+# fi
+
+# =============================================================================
+# Completion Message
+# =============================================================================
+
+fancy_echo "Laptop script finished successfully! Please restart your terminal."
+echo
+echo "Next steps:"
+echo "  1. Set up dotfiles: ~/dotfiles/setup.sh"
+echo "  2. Configure Git: cp ~/dotfiles/local/gitconfig.local.example ~/.gitconfig.local"
+echo "  3. Configure Shell: cp ~/dotfiles/local/config.fish.example ~/dotfiles/local/config.fish.local"
+echo "  4. Install Tmux plugins: <prefix> + I"
+echo "  5. Check Neovim health: nvim +checkhealth"
+echo
+
+# vim: set filetype=sh:

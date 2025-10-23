@@ -1,0 +1,163 @@
+# Git Local Configuration
+#
+# Copy this file to ~/.gitconfig.local and customize with your personal settings.
+# This file is automatically included by git/.gitconfig
+#
+# Usage:
+#   cp local/gitconfig.local.example ~/.gitconfig.local
+#   vim ~/.gitconfig.local
+
+[user]
+	# Your name as it appears in commits
+	name = Your Name
+
+	# Your email address
+	# Use your personal email or company email as needed
+	email = your.email@example.com
+
+	# Optional: Use different email for work repositories
+	# See [includeIf] section below
+
+[commit]
+	# Uncomment to sign commits with GPG
+	# gpgsign = true
+
+[user]
+	# Uncomment and set your GPG signing key
+	# Get your key ID with: gpg --list-secret-keys --keyid-format=long
+	# signingkey = YOUR_GPG_KEY_ID
+
+[github]
+	# Your GitHub username
+	user = your-github-username
+
+[core]
+	# Uncomment to use a custom editor
+	# editor = nvim
+	# editor = code --wait
+	# editor = subl -n -w
+
+[alias]
+	# Add your personal git aliases here
+	# Examples:
+	
+	# Quick shortcuts
+	# co = checkout
+	# br = branch
+	# ci = commit
+	
+	# Enhanced logging
+	# lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	
+	# Show files in last commit
+	# last = log -1 HEAD --stat
+	
+	# Undo last commit but keep changes
+	# undo = reset HEAD~1 --mixed
+	
+	# List all aliases
+	# aliases = config --get-regexp alias
+
+[credential]
+	# macOS Keychain for credential storage
+	# helper = osxkeychain
+	
+	# Or use 1Password CLI for better security
+	# helper = 
+	# helper = !gh auth git-credential
+	# helper = !op plugin git-credential
+
+[pull]
+	# Choose your preferred pull strategy
+	# rebase = false    # merge (default)
+	# rebase = true     # rebase
+	# ff = only         # fast-forward only
+
+[push]
+	# Push current branch to branch with same name
+	# default = current
+	
+	# Or push to upstream branch
+	# default = upstream
+
+[diff]
+	# Better diff algorithm
+	# algorithm = histogram
+	
+	# Use VS Code for diffs
+	# tool = vscode
+	
+	# Use Neovim for diffs
+	# tool = nvimdiff
+
+[difftool "vscode"]
+	# cmd = code --wait --diff $LOCAL $REMOTE
+
+[merge]
+	# Use VS Code for merge conflicts
+	# tool = vscode
+	
+	# Use Neovim for merge conflicts
+	# tool = nvimdiff
+	
+	# Show common ancestor in conflict markers
+	# conflictstyle = diff3
+
+[mergetool "vscode"]
+	# cmd = code --wait $MERGED
+
+[init]
+	# Default branch name for new repositories
+	# defaultBranch = main
+
+# Conditional includes - use different configs for different directories
+# Useful for work vs personal projects
+
+# [includeIf "gitdir:~/projects/work/"]
+# 	path = ~/.gitconfig.work
+
+# [includeIf "gitdir:~/projects/personal/"]
+# 	path = ~/.gitconfig.personal
+
+# Work-specific example:
+# Create ~/.gitconfig.work with:
+# [user]
+#     name = Your Name
+#     email = work.email@company.com
+# [commit]
+#     gpgsign = true
+
+# URL rewrites - force HTTPS or SSH
+# [url "https://github.com/"]
+# 	insteadOf = git://github.com/
+
+# [url "git@github.com:"]
+# 	insteadOf = https://github.com/
+
+# Performance optimizations for large repositories
+# [feature]
+# 	manyFiles = true
+
+# [index]
+# 	version = 4
+
+# [core]
+# 	untrackedCache = true
+# 	fsmonitor = true
+
+# Color customization
+# [color]
+# 	ui = auto
+
+# [color "branch"]
+# 	current = yellow reverse
+# 	local = yellow
+# 	remote = green
+
+# [color "diff"]
+# 	meta = yellow bold
+# 	frag = magenta bold
+# 	old = red bold
+# 	new = green bold
+
+# vim: set filetype=gitconfig:

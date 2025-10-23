@@ -1,7 +1,165 @@
-# Rename me to config.fish.local
+# Fish Shell Local Configuration
+#
+# Copy this file to config.fish.local and customize with your personal settings.
+# This file is automatically sourced by fish/.config/fish/config.fish
+#
+# Usage:
+#   cp local/config.fish.example local/config.fish.local
+#   vim local/config.fish.local
+#   exec fish  # Reload shell
+#
+# Security Note:
+#   This file is gitignored. Safe for API keys and tokens.
+#   Consider using 1Password CLI for even better security.
 
-set -xg GITHUB_USER 'your_username'
-set -xg GITHUB_TOKEN 'my123nuclear456launch789code'
-set -xg MY_SPECIAL_PATH "$HOME/foo/bar"
+# =============================================================================
+# Environment Variables
+# =============================================================================
+
+# Personal Information
+# set -xg GITHUB_USER 'your_username'
+# set -xg EMAIL 'your.email@example.com'
+
+# API Keys & Tokens
+# set -xg GITHUB_TOKEN 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+# set -xg OPENAI_API_KEY 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+# set -xg ANTHROPIC_API_KEY 'sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+# Database Connections
+# set -xg DATABASE_URL 'postgresql://username:password@localhost:5432/database_name'
+# set -xg REDIS_URL 'redis://localhost:6379'
+
+# Custom Paths
+# set -xg MY_SPECIAL_PATH "$HOME/foo/bar"
+# set -xg PROJECT_ROOT "$HOME/projects"
+
+# =============================================================================
+# Fish-Specific Abbreviations
+# =============================================================================
+
+# Add machine-specific abbreviations here
+# Global abbreviations are in shared/abbreviations.yaml
+
+# Project shortcuts
+# abbr -a work 'cd ~/projects/work'
+# abbr -a play 'cd ~/projects/playground'
+
+# Custom git workflows
+# abbr -a gpo 'git push origin (git branch --show-current)'
+
+# Docker shortcuts
+# abbr -a dps 'docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}"'
+
+# =============================================================================
+# Fish Functions
+# =============================================================================
+
+# Add custom Fish functions here
+
+# Example: Quick project navigation
+# function proj
+#     cd ~/projects/$argv[1]
+# end
+
+# Example: Start development environment
+# function dev
+#     cd ~/projects/$argv[1]
+#     tmux new-session -A -s $argv[1]
+# end
+
+# Example: Create and enter directory
+# function mkcd
+#     mkdir -p $argv[1]
+#     cd $argv[1]
+# end
+
+# =============================================================================
+# Fish Configuration Overrides
+# =============================================================================
+
+# Override default Fish settings
+
+# Greeting message
+# set -U fish_greeting ""  # Disable greeting
+# set -U fish_greeting "Welcome back, $USER!"  # Custom greeting
+
+# Color scheme (use fish_config to browse themes)
+# fish_config theme choose "Dracula"
+
+# Key bindings
+# bind \cl 'clear; commandline -f repaint'  # Ctrl+L clears screen
+
+# =============================================================================
+# Path Modifications
+# =============================================================================
+
+# Add custom directories to PATH
+# fish_add_path ~/bin
+# fish_add_path ~/.local/scripts
+# fish_add_path ~/go/bin
+
+# =============================================================================
+# 1Password CLI Integration (Recommended)
+# =============================================================================
+
+# Use 1Password CLI to securely fetch secrets instead of storing them in plain text
+#
+# Installation:
+#   brew install --cask 1password-cli
+#   op signin
+#
+# Usage examples:
+
+# GitHub Token from 1Password
+# set -xg GITHUB_TOKEN (op read "op://Private/GitHub/token")
+
+# AWS Credentials from 1Password
+# set -xg AWS_ACCESS_KEY_ID (op read "op://Private/AWS/access_key_id")
+# set -xg AWS_SECRET_ACCESS_KEY (op read "op://Private/AWS/secret_access_key")
+
+# Database URL from 1Password
+# set -xg DATABASE_URL (op read "op://Private/Database/connection_string")
+
+# =============================================================================
+# Conditional Configuration
+# =============================================================================
+
+# Set different configurations based on hostname
+# switch (hostname)
+#     case work-laptop
+#         set -xg WORK_MODE true
+#         set -xg GIT_AUTHOR_EMAIL "work.email@company.com"
+#     case personal-laptop
+#         set -xg GIT_AUTHOR_EMAIL "personal.email@example.com"
+# end
+
+# =============================================================================
+# Startup Commands
+# =============================================================================
+
+# Commands to run when starting a new Fish shell
+
+# Start tmux automatically (if not already in tmux)
+# if status is-interactive
+#     and not set -q TMUX
+#     exec tmux new-session -A -s main
+# end
+
+# Display system info on startup
+# if status is-interactive
+#     fastfetch
+# end
+
+# =============================================================================
+# Tips
+# =============================================================================
+
+# 1. Use 'set -xg' for global environment variables
+# 2. Use 'set -Ux' for universal variables (persist across sessions)
+# 3. Use 'abbr -a' to add abbreviations
+# 4. Test changes with: source local/config.fish.local
+# 5. See current variables: set -xg
+# 6. See current abbreviations: abbr -s
+# 7. Use fish_config for interactive configuration
 
 # vim: set filetype=fish:

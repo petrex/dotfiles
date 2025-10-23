@@ -240,11 +240,20 @@ The dotfiles use a shared configuration framework to eliminate duplication betwe
 
 ## Customization
 
-Local customizations should be placed in `*.local` files:
+Local customizations should be placed in `*.local` files. Comprehensive templates are available in `~/dotfiles/local/`:
 
-- `~/.gitconfig.local` - Personal git configuration
-- `~/.laptop.local` - Additional laptop setup customizations
-- `~/dotfiles/local/config.fish.local` - Fish-specific local configuration
+- `~/.gitconfig.local` - Personal git configuration (name, email, signing, aliases)
+- `~/.laptop.local` - Additional laptop setup customizations (packages, languages, settings)
+- `~/dotfiles/local/config.fish.local` - Fish-specific local configuration (variables, functions, abbreviations)
+- `~/dotfiles/local/shell-env.local` - Shell-agnostic environment variables (API keys, credentials, paths)
+
+**Template files:**
+- `local/gitconfig.local.example` - Comprehensive git configuration template
+- `local/laptop.local.example` - Laptop script customization template with examples
+- `local/config.fish.example` - Fish shell configuration template with examples
+- `local/shell-env.local.example` - Environment variables template with security best practices
+
+**Documentation:** See `~/dotfiles/local/README.md` for detailed usage instructions, security best practices, and troubleshooting.
 
 ## Scratchpads
 
