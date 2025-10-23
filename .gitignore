@@ -21,3 +21,6 @@ vim/bundle
 # Scratchpads for temporary files, notes, and debugging
 scratchpads/
 *.rej
+
+# Pre-commit local overrides
+.pre-commit-config.local.yaml
