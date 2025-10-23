@@ -1,0 +1,93 @@
+# Gitlint Configuration
+#
+# Configuration for git commit message linting via pre-commit hooks
+# More info: https://jorisroovers.com/gitlint/
+
+[general]
+# Ignore merge, revert, fixup, squash commits
+ignore=merge-commits,revert-commits,fixup-commits,squash-commits
+
+# Enable community contributed rules
+# See https://jorisroovers.com/gitlint/contrib_rules/
+# contrib=contrib-title-conventional-commits
+
+# Verbosity (1-3)
+verbosity=2
+
+# Enable debug mode
+# debug=true
+
+# =============================================================================
+# Rules Configuration
+# =============================================================================
+
+[title-max-length]
+# Max title length (default: 72)
+line-length=72
+
+[title-trailing-whitespace]
+# No trailing whitespace in title
+
+[title-trailing-punctuation]
+# No trailing punctuation in title
+# Common allowed: . ! ?
+# We disallow all for clean commit messages
+
+[title-hard-tab]
+# No hard tabs in title
+
+[title-must-not-contain-word]
+# Words that should not be in the title
+# words=wip,squash,fixup
+
+[body-max-line-length]
+# Max body line length (default: 80)
+line-length=80
+
+[body-min-length]
+# Minimum body length (default: 20)
+# Disabled to allow short commit bodies
+min-length=0
+
+[body-is-missing]
+# Allow commits without body
+# Set to true to require body
+ignore-merge-commits=true
+ignore-fixup-commits=true
+ignore-squash-commits=true
+
+[body-trailing-whitespace]
+# No trailing whitespace in body
+
+[body-hard-tab]
+# No hard tabs in body
+
+[body-first-line-empty]
+# First line of body must be empty
+
+# =============================================================================
+# Optional: Conventional Commits Style
+# =============================================================================
+# Uncomment to enforce Conventional Commits format
+# https://www.conventionalcommits.org/
+
+# [title-match-regex]
+# # Regex for conventional commits format
+# # type(scope): subject
+# regex=^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?:\s.+
+
+# =============================================================================
+# Custom Rules
+# =============================================================================
+
+[ignore-by-title]
+# Ignore certain rules for specific commits
+# regex=^Release
+# ignore=body-min-length
+
+[ignore-by-body]
+# Ignore certain rules based on commit body
+# regex=(.*)
+# ignore=all
+
+# vim: set filetype=ini:
