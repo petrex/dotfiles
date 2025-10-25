@@ -1,0 +1,208 @@
+#!/bin/bash
+
+# Linux Local Bootstrap Configuration
+#
+# Copy this file to ~/.linux.local to customize your Linux bootstrap script.
+# This file is sourced by linux/bootstrap.sh
+#
+# Usage:
+#   cp linux/.linux.local.example ~/.linux.local
+#   vim ~/.linux.local
+#   bash linux/bootstrap.sh
+
+# =============================================================================
+# Additional APT Packages
+# =============================================================================
+
+fancy_echo "Installing additional custom packages..."
+
+# Add your custom packages here
+# sudo apt install -y \
+#   package1 \
+#   package2 \
+#   package3
+
+# =============================================================================
+# Additional PPAs
+# =============================================================================
+
+# Example: Add custom PPAs
+# fancy_echo "Adding custom PPAs..."
+# sudo add-apt-repository -y ppa:some/ppa
+# sudo apt update
+
+# =============================================================================
+# Snap Packages
+# =============================================================================
+
+# Install snap packages if snap is available
+# if command -v snap >/dev/null; then
+#   fancy_echo "Installing snap packages..."
+#   sudo snap install code --classic
+#   sudo snap install chromium
+# fi
+
+# =============================================================================
+# Flatpak Setup
+# =============================================================================
+
+# Install flatpak if desired
+# if ! command -v flatpak >/dev/null; then
+#   fancy_echo "Installing flatpak..."
+#   sudo apt install -y flatpak
+#   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+# fi
+
+# Install flatpak applications
+# fancy_echo "Installing flatpak applications..."
+# flatpak install -y flathub com.spotify.Client
+# flatpak install -y flathub com.discordapp.Discord
+
+# =============================================================================
+# Docker Setup
+# =============================================================================
+
+# Install Docker
+# if ! command -v docker >/dev/null; then
+#   fancy_echo "Installing Docker..."
+#   curl -fsSL https://get.docker.com -o get-docker.sh
+#   sudo sh get-docker.sh
+#   sudo usermod -aG docker $USER
+#   rm get-docker.sh
+#   log_success "Docker installed - logout and login to use without sudo"
+# fi
+
+# Install Docker Compose
+# if ! command -v docker-compose >/dev/null; then
+#   fancy_echo "Installing Docker Compose..."
+#   sudo apt install -y docker-compose-plugin
+# fi
+
+# =============================================================================
+# Additional Language Versions
+# =============================================================================
+
+# Install specific language versions with ASDF
+# fancy_echo "Installing specific language versions..."
+
+# Node.js LTS
+# asdf install nodejs lts
+# asdf global nodejs lts
+
+# Ruby latest
+# asdf install ruby latest
+# asdf global ruby latest
+
+# Python 3.11
+# asdf install python 3.11.7
+# asdf global python 3.11.7
+
+# =============================================================================
+# Ruby Gems
+# =============================================================================
+
+# Install additional Ruby gems
+# if command -v gem >/dev/null; then
+#   fancy_echo "Installing custom Ruby gems..."
+#   gem install bundler
+#   gem install rails
+#   gem install tmuxinator
+# fi
+
+# =============================================================================
+# Node.js Packages
+# =============================================================================
+
+# Install additional npm packages
+# if command -v npm >/dev/null; then
+#   fancy_echo "Installing custom npm packages..."
+#   npm install -g http-server
+#   npm install -g typescript
+#   npm install -g prettier
+# fi
+
+# =============================================================================
+# Python Packages
+# =============================================================================
+
+# Install additional Python packages
+# if command -v pip3 >/dev/null; then
+#   fancy_echo "Installing custom Python packages..."
+#   pip3 install --user neovim
+#   pip3 install --user black
+#   pip3 install --user flake8
+# fi
+
+# =============================================================================
+# System Configuration
+# =============================================================================
+
+# Configure git
+# fancy_echo "Configuring git..."
+# git config --global user.name "Your Name"
+# git config --global user.email "your.email@example.com"
+
+# Set default shell
+# fancy_echo "Setting default shell..."
+# sudo chsh -s $(which fish) $(whoami)
+# # or
+# sudo chsh -s $(which zsh) $(whoami)
+
+# =============================================================================
+# Desktop Environment Tweaks
+# =============================================================================
+
+# GNOME extensions (if using GNOME)
+# if command -v gnome-shell >/dev/null; then
+#   fancy_echo "Installing GNOME extensions..."
+#   # Add your preferred extensions
+# fi
+
+# =============================================================================
+# Custom Directories
+# =============================================================================
+
+# Create project directories
+# fancy_echo "Creating project directories..."
+# mkdir -p ~/projects/personal
+# mkdir -p ~/projects/work
+# mkdir -p ~/workspace
+
+# =============================================================================
+# SSH Keys
+# =============================================================================
+
+# Generate SSH key if it doesn't exist
+# if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
+#   fancy_echo "Generating SSH key..."
+#   ssh-keygen -t ed25519 -C "your.email@example.com" -f "$HOME/.ssh/id_ed25519" -N ""
+#   log_success "SSH key generated at ~/.ssh/id_ed25519"
+#   echo "Add this key to GitHub:"
+#   cat "$HOME/.ssh/id_ed25519.pub"
+# fi
+
+# =============================================================================
+# Custom Fonts
+# =============================================================================
+
+# Install additional fonts
+# fancy_echo "Installing custom fonts..."
+# FONT_DIR="$HOME/.local/share/fonts"
+# mkdir -p "$FONT_DIR"
+
+# Example: Install JetBrains Mono
+# wget -P /tmp https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip
+# unzip /tmp/JetBrainsMono-2.304.zip -d "$FONT_DIR/JetBrainsMono"
+# rm /tmp/JetBrainsMono-2.304.zip
+# fc-cache -fv
+
+# =============================================================================
+# Cleanup
+# =============================================================================
+
+fancy_echo "Running custom cleanup..."
+# Add any custom cleanup here
+
+log_success "Custom local bootstrap completed!"
+
+# vim: set filetype=sh:

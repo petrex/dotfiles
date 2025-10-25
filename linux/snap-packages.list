@@ -1,0 +1,45 @@
+# Ubuntu Snap Packages
+#
+# GUI applications best installed via snap
+# Install with: snap install <package>
+#
+# Note: Some packages may require --classic flag
+
+# Development Tools
+# code --classic              # VS Code
+# sublime-text --classic      # Sublime Text
+# phpstorm --classic          # PhpStorm
+# webstorm --classic          # WebStorm
+
+# Terminals
+# alacritty                   # Alacritty terminal
+# kitty                       # Kitty terminal
+
+# Browsers
+# firefox                     # Firefox
+# chromium                    # Chromium
+# brave                       # Brave browser
+
+# Communication
+# signal-desktop              # Signal
+# telegram-desktop            # Telegram
+# slack --classic             # Slack
+# discord                     # Discord
+
+# Productivity
+# obsidian --classic          # Obsidian notes
+# notion-snap                 # Notion
+
+# Media
+# spotify                     # Spotify
+# vlc                         # VLC media player
+
+# Cloud Storage
+# dropbox                     # Dropbox
+# google-drive-ocamlfuse      # Google Drive
+
+# Database Tools
+# dbeaver-ce                  # DBeaver Community
+# beekeeper-studio            # Beekeeper Studio
+
+# vim: set filetype=conf:

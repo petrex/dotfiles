@@ -80,6 +80,8 @@ For detailed guidance on installation, customization, and troubleshooting:
 
 ## ✅ Prerequisites
 
+### macOS
+
 The dotfiles assume you are running macOS with (at minimum) the following software pre-installed:
 
 - [Git][git]
@@ -94,13 +96,37 @@ The dotfiles assume you are running macOS with (at minimum) the following softwa
 
 All of the above and more are installed with my fork of [Laptop][joshuas-laptop].
 
-## 🌟 New Mac Bootstrap
+### Linux (Ubuntu/Debian)
+
+For Linux systems, use the included bootstrap script which installs:
+
+- Git, GNU Stow, build tools
+- Zsh and/or Fish shell
+- Neovim, Tmux
+- Modern CLI tools (bat, fd, ripgrep, eza, zoxide)
+- ASDF version manager
+- Starship prompt
+- Development libraries
+
+See [Linux Setup Guide](docs/setup/linux-setup.md) for detailed instructions.
+
+## 🌟 New System Bootstrap
+
+### macOS Setup
 
 This is what I would do if I bought a new Mac computer today. The steps below assume you have already completed the basics:
 
 - Log in to iCloud
 - Check for software updates
 - [Install Xcode Command Line Tools][install-clt]
+
+### Linux (Ubuntu/Debian) Setup
+
+For a fresh Linux system:
+
+- Update system: `sudo apt update && sudo apt upgrade -y`
+- Install git: `sudo apt install -y git`
+- See complete guide: [Linux Setup Guide](docs/setup/linux-setup.md)
 
 ### 💻 1. Run my fork of thoughtbot’s Laptop
 
