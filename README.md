@@ -199,6 +199,7 @@ brew bundle install
 
 - [ ] Launch LazyVim (`nvim`) and run [`:checkhealth`][checkhealth]. Resolve errors and warnings. Plugins should install automatically on first launch.
 - [ ] Add personal data as needed to `*.local` files such as `~/.gitconfig.local`, `~/.laptop.local`, `~/dotfiles/local/config.fish.local`.
+- [ ] Set up git hooks for automated validation: `./scripts/setup-git-hooks.sh`
 - [ ] (Optional) Set up [1Password CLI][1p-cli-start] for managing secrets.
 - [ ] (Optional) Set up [1Password SSH key management][1p-cli-ssh].
 - [ ] If using Fish, customize your setup by running the `fish_config` command.

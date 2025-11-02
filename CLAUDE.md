@@ -68,10 +68,51 @@ brew bundle install
 
 # Run specific validator (shell-syntax, abbreviations, environment, dependencies, markdown)
 ./scripts/validate-config.sh --validator markdown
-
-# Setup git hooks for automatic validation
-./scripts/setup-git-hooks.sh
 ```
+
+### Pre-commit Hooks
+
+Automated validation and linting runs before each commit and push using the [pre-commit framework](https://pre-commit.com/):
+
+```bash
+# Setup git hooks (installs pre-commit, pre-push, post-commit hooks)
+./scripts/setup-git-hooks.sh
+
+# Check hook installation status
+./scripts/setup-git-hooks.sh --check
+
+# Update hooks to latest versions
+./scripts/setup-git-hooks.sh --update
+
+# Uninstall hooks
+./scripts/setup-git-hooks.sh --uninstall
+
+# Manually run all hooks
+pre-commit run --all-files
+
+# Run specific hook
+pre-commit run shellcheck --all-files
+
+# Bypass hooks (use sparingly)
+git commit --no-verify
+SKIP=shellcheck git commit -m "message"
+```
+
+**Installed hooks:**
+- File formatting (trailing whitespace, line endings)
+- Security checks (secrets, large files, private keys)
+- Syntax validation (YAML, JSON, Fish, Zsh, Bash)
+- Shell linting (shellcheck, shfmt, custom linters)
+- Markdown linting (markdownlint-cli2)
+- Configuration validation (runs validate-config.sh)
+- Test suite (runs before push)
+
+**Configuration files:**
+- `.pre-commit-config.yaml` - Main hook configuration
+- `.pre-commit-config.local.yaml` - Local overrides (gitignored)
+- `.gitlint` - Commit message linting rules
+
+**Documentation:** See `docs/git-hooks.md` for comprehensive guide, troubleshooting, and best practices.
 
 ### Testing and Linting
 

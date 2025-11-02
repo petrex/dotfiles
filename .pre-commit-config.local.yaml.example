@@ -1,0 +1,53 @@
+# Pre-commit Local Configuration Override
+#
+# Copy this file to .pre-commit-config.local.yaml to override or extend
+# the default pre-commit configuration without modifying the main config.
+#
+# Usage:
+#   cp .pre-commit-config.local.yaml.example .pre-commit-config.local.yaml
+#   vim .pre-commit-config.local.yaml
+#
+# Note: .pre-commit-config.local.yaml is gitignored
+
+# Example: Skip specific hooks
+# exclude: |
+#   (?x)^(
+#     my-custom-file\.sh$|
+#     experimental/.*
+#   )
+
+# Example: Override fail_fast
+# fail_fast: true
+
+# Example: Disable specific hooks by adding them to the skip list
+# You can set this via environment variable too:
+# SKIP=shellcheck,shfmt git commit -m "message"
+
+# Example: Add personal hooks
+# repos:
+#   - repo: local
+#     hooks:
+#       - id: my-custom-hook
+#         name: My custom pre-commit hook
+#         entry: ./scripts/my-custom-check.sh
+#         language: script
+#         pass_filenames: false
+
+# Example: Override hook arguments
+# To override a specific hook, you need to duplicate its configuration
+# and modify the args. Pre-commit will use the last definition.
+#
+# repos:
+#   - repo: https://github.com/shellcheck-py/shellcheck-py
+#     rev: v0.10.0.1
+#     hooks:
+#       - id: shellcheck
+#         args: [--severity=info, --shell=bash]  # More strict
+
+# Example: Disable a specific hook
+# You can't directly disable a hook from another file, but you can:
+# 1. Use SKIP environment variable: SKIP=hook-id git commit
+# 2. Use --no-verify: git commit --no-verify
+# 3. Configure to run only in specific stages
+
+# vim: set filetype=yaml:
