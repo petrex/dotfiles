@@ -8,7 +8,15 @@
 #   Zsh/Bash:  source ~/dotfiles/shared/environment.sh in .zshrc/.bashrc
 
 # Source OS detection
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Handle both Bash and Zsh for getting script directory
+if [ -n "${ZSH_VERSION:-}" ]; then
+  # In Zsh, $0 is the sourced script path when sourcing
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+elif [ -n "${BASH_SOURCE[0]:-}" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  SCRIPT_DIR="${HOME}/dotfiles/shared"
+fi
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/os-detect.sh"
 
