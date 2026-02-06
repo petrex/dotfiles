@@ -7,12 +7,12 @@ tap "teamookla/speedtest"
 # Homebrew
 # https://github.com/Homebrew/brew/
 
-brew "advancecomp"
+# brew "advancecomp"              # not needed — compression optimizer
 brew "openssl@3"
 brew "libyaml"
 brew "readline"
 brew "ansible"
-brew "asciidoctor"
+# brew "asciidoctor"              # not needed — AsciiDoc converter
 brew "asdf"
 brew "awscli"
 brew "bash"
@@ -29,17 +29,17 @@ brew "docutils"
 brew "dos2unix"
 brew "eza"
 brew "fd"
-brew "ffmpegthumbnailer"
+# brew "ffmpegthumbnailer"        # not needed — video thumbnails
 brew "gcc"
 brew "fastfetch"
 brew "fish"
-brew "flyctl"
-brew "fontforge"
-brew "fonttools"
+# brew "flyctl"                   # not needed — Fly.io deployment CLI
+# brew "fontforge"                # not needed — font editor
+# brew "fonttools"                # not needed — font manipulation
 brew "fzf"
 brew "gh"
 brew "ghostscript"
-brew "gifsicle"
+# brew "gifsicle"                 # not needed — GIF manipulation
 brew "git"
 brew "git-quick-stats"
 brew "gnu-sed"
@@ -50,36 +50,36 @@ brew "pkgconf"
 brew "highlight"
 brew "htop"
 brew "httpie"
-brew "hugo"
+# brew "hugo"                     # not needed — static site generator
 brew "imagemagick"
-brew "jhead"
+# brew "jhead"                    # not needed — JPEG header editing
 brew "jq"
 brew "lazydocker"
 brew "lazygit"
 brew "less"
 brew "libpq"
 brew "libtermkey"
-brew "lynx"
+# brew "lynx"                     # not needed — text web browser
 brew "markdownlint-cli2"
 brew "mas"
 brew "media-info"
 brew "memcached"
 brew "most"
 brew "neovim"
-brew "node"
+# brew "node"                     # not needed — managed by asdf
 brew "onefetch"
 brew "ossp-uuid"
 brew "tmux"
-brew "overmind"
+# brew "overmind"                 # not needed — Procfile manager (Rails)
 brew "pandoc"
 brew "perl"
 brew "pgcli"
-brew "php"
+# brew "php"                      # not needed — web scripting language
 brew "pillow"
 brew "pinentry-mac"
 brew "poppler"
 brew "postgresql@17", restart_service: :changed
-brew "prettier"
+# brew "prettier"                 # not needed — JS/web formatter
 brew "pstree"
 brew "redis"
 brew "ripgrep"
@@ -100,29 +100,30 @@ brew "unar"
 brew "universal-ctags"
 brew "urlview"
 brew "vips"
-brew "w3m"
+# brew "w3m"                      # not needed — text web browser
 brew "wget"
-brew "wordnet"
+# brew "wordnet"                  # not needed — lexical database
 brew "yamllint"
-brew "yarn"
+# brew "yarn"                     # not needed — JS package manager
 brew "yq"
 brew "zlib"
 brew "zoxide"
 brew "zsh"
 brew "olets/tap/zsh-abbr"
-brew "stripe/stripe-cli/stripe"
+# brew "stripe/stripe-cli/stripe" # not needed — payment processing CLI
 brew "teamookla/speedtest/speedtest"
+brew "uv"
 
 # homebrew-cask
 # https://github.com/Homebrew/homebrew-cask
 
 # cask "1password-cli"
-cask "alfred"
-cask "bartender"
-cask "brave-browser"
-cask "carbon-copy-cloner"
-cask "cleanmymac"
-cask "firefox"
+# cask "alfred"                   # disabled
+# cask "bartender"                # disabled
+# cask "brave-browser"            # disabled
+# cask "carbon-copy-cloner"       # disabled
+# cask "cleanmymac"               # disabled
+# cask "firefox"                  # disabled
 cask "font-cascadia-code"
 cask "font-cascadia-code-nf"
 cask "font-fira-code"
@@ -139,32 +140,36 @@ cask "font-source-code-pro"
 cask "font-symbols-only-nerd-font"
 cask "ghostty"
 cask "google-drive"
-cask "grammarly-desktop"
-cask "hazel"
+# cask "grammarly-desktop"        # disabled
+# cask "hazel"                    # disabled
 cask "istat-menus"
-cask "kitty"
-cask "loom"
-cask "ngrok"
-cask "notion"
-cask "obsidian"
-cask "postico"
-cask "qxmledit"
-cask "screenflick"
-cask "signal"
-cask "tableplus"
-cask "telegram"
-cask "todoist-app"
-cask "viber"
-cask "whatsapp"
+cask "iterm2"
+# cask "kitty"                    # not needed — using ghostty
+# cask "loom"                     # not needed — screen recording
+# cask "ngrok"                    # disabled
+# cask "notion"                   # disabled
+# cask "obsidian"                 # disabled
+# cask "postico"                  # not needed — PostgreSQL GUI
+# cask "qxmledit"                 # not needed — XML editor
+# cask "screenflick"              # not needed — screen recording
+# cask "signal"                   # disabled
+# cask "tableplus"                # disabled
+# cask "telegram"                 # disabled
+# cask "todoist-app"              # disabled
+# cask "viber"                    # disabled
+# cask "whatsapp"                 # disabled
+cask "tailscale"
+cask "visual-studio-code"
+cask "zoom"
 
-mas "1Password for Safari", id: 1569813296
-mas "e-Sword X", id: 968437868
-mas "Keynote", id: 409183694
-mas "Logic Pro", id: 634148309
-mas "Marked 2", id: 890031187
-mas "Numbers", id: 409203825
-mas "Pages", id: 409201541
-mas "The Unarchiver", id: 425424353
-mas "Toggl Track", id: 1291898086
+# mas "1Password for Safari", id: 1569813296  # disabled
+# mas "e-Sword X", id: 968437868              # disabled
+# mas "Keynote", id: 409183694                # disabled
+# mas "Logic Pro", id: 634148309              # disabled
+# mas "Marked 2", id: 890031187              # disabled
+# mas "Numbers", id: 409203825               # disabled
+# mas "Pages", id: 409201541                 # disabled
+# mas "The Unarchiver", id: 425424353        # disabled
+# mas "Toggl Track", id: 1291898086          # disabled
 
 # vim: set filetype=ruby:
