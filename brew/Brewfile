@@ -11,79 +11,79 @@ tap "teamookla/speedtest"
 brew "openssl@3"
 brew "libyaml"
 brew "readline"
-brew "ansible"
+# brew "ansible"                  # disabled — not using for AI infra
 # brew "asciidoctor"              # not needed — AsciiDoc converter
 brew "asdf"
 brew "awscli"
 brew "bash"
 brew "bash-completion"
 brew "bat"
-brew "bats-core"
+# brew "bats-core"                # disabled — bash test framework
 brew "btop"
-brew "cloc"
+# brew "cloc"                     # disabled — line counter
 brew "cmake"
 brew "coreutils"
 brew "curl"
 brew "diff-so-fancy"
-brew "docutils"
-brew "dos2unix"
+# brew "docutils"                 # disabled — Python reST utilities
+# brew "dos2unix"                 # disabled — line ending converter
 brew "eza"
 brew "fd"
 # brew "ffmpegthumbnailer"        # not needed — video thumbnails
 brew "gcc"
-brew "fastfetch"
+# brew "fastfetch"                # disabled — system info display
 brew "fish"
 # brew "flyctl"                   # not needed — Fly.io deployment CLI
 # brew "fontforge"                # not needed — font editor
 # brew "fonttools"                # not needed — font manipulation
 brew "fzf"
 brew "gh"
-brew "ghostscript"
+# brew "ghostscript"              # disabled — PostScript/PDF interpreter
 # brew "gifsicle"                 # not needed — GIF manipulation
 brew "git"
-brew "git-quick-stats"
+# brew "git-quick-stats"          # disabled — git statistics
 brew "gnu-sed"
 brew "gnupg"
 brew "graphviz"
 brew "hadolint"
 brew "pkgconf"
-brew "highlight"
+# brew "highlight"                # disabled — source code highlighter
 brew "htop"
-brew "httpie"
+# brew "httpie"                   # disabled — redundant with curl
 # brew "hugo"                     # not needed — static site generator
-brew "imagemagick"
+# brew "imagemagick"              # disabled — image manipulation
 # brew "jhead"                    # not needed — JPEG header editing
 brew "jq"
 brew "lazydocker"
 brew "lazygit"
 brew "less"
-brew "libpq"
-brew "libtermkey"
+# brew "libpq"                    # disabled — PostgreSQL client lib
+# brew "libtermkey"               # disabled — terminal key library
 # brew "lynx"                     # not needed — text web browser
-brew "markdownlint-cli2"
-brew "mas"
-brew "media-info"
-brew "memcached"
-brew "most"
+# brew "markdownlint-cli2"        # disabled — markdown linter
+# brew "mas"                      # disabled — MAS entries all disabled
+# brew "media-info"               # disabled — media file metadata
+# brew "memcached"                # disabled — in-memory cache
+# brew "most"                     # disabled — redundant with bat/less
 brew "neovim"
 # brew "node"                     # not needed — managed by asdf
-brew "onefetch"
-brew "ossp-uuid"
+# brew "onefetch"                 # disabled — git repo summary
+# brew "ossp-uuid"                # disabled — UUID library
 brew "tmux"
 # brew "overmind"                 # not needed — Procfile manager (Rails)
-brew "pandoc"
-brew "perl"
-brew "pgcli"
+# brew "pandoc"                   # disabled — document converter
+# brew "perl"                     # disabled — rarely used directly
+# brew "pgcli"                    # disabled — PostgreSQL CLI
 # brew "php"                      # not needed — web scripting language
-brew "pillow"
-brew "pinentry-mac"
-brew "poppler"
-brew "postgresql@17", restart_service: :changed
+# brew "pillow"                   # disabled — use pip/uv in venvs
+# brew "pinentry-mac"             # disabled — GPG PIN entry
+# brew "poppler"                  # disabled — PDF rendering library
+# brew "postgresql@17", restart_service: :changed  # disabled — local DB
 # brew "prettier"                 # not needed — JS/web formatter
-brew "pstree"
-brew "redis"
+# brew "pstree"                   # disabled — process tree
+# brew "redis"                    # disabled — local Redis
 brew "ripgrep"
-brew "rlwrap"
+# brew "rlwrap"                   # disabled — readline wrapper
 brew "rsync"
 brew "rust"
 brew "shellcheck"
@@ -92,18 +92,18 @@ brew "ssh-copy-id"
 brew "starship"
 brew "stow"
 brew "tealdeer"
-brew "telnet"
+# brew "telnet"                   # disabled — largely obsolete
 brew "the_silver_searcher"
 brew "trash"
 brew "tree"
-brew "unar"
+# brew "unar"                     # disabled — archive extractor
 brew "universal-ctags"
-brew "urlview"
-brew "vips"
+# brew "urlview"                  # disabled — URL extractor
+# brew "vips"                     # disabled — image processing
 # brew "w3m"                      # not needed — text web browser
 brew "wget"
 # brew "wordnet"                  # not needed — lexical database
-brew "yamllint"
+# brew "yamllint"                 # disabled — YAML linter
 # brew "yarn"                     # not needed — JS package manager
 brew "yq"
 brew "zlib"
@@ -111,7 +111,7 @@ brew "zoxide"
 brew "zsh"
 brew "olets/tap/zsh-abbr"
 # brew "stripe/stripe-cli/stripe" # not needed — payment processing CLI
-brew "teamookla/speedtest/speedtest"
+# brew "teamookla/speedtest/speedtest"  # disabled — speed test
 brew "uv"
 
 # homebrew-cask
@@ -133,7 +133,7 @@ cask "font-hack-nerd-font"
 cask "font-jetbrains-mono"
 cask "font-jetbrains-mono-nerd-font"
 cask "font-monaspace"
-cask "font-monaspace-nerd-font"
+cask "font-monaspice-nerd-font"
 cask "font-envy-code-r"
 cask "font-envy-code-r-nerd-font"
 cask "font-source-code-pro"
