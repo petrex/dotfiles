@@ -2,10 +2,12 @@
 
 # set fish_greeting # supress fish greeting
 
-if test (arch) = arm64
-    eval (/opt/homebrew/bin/brew shellenv)
-else
-    eval (/usr/local/bin/brew shellenv)
+if test (uname) = Darwin
+    if test (arch) = arm64
+        eval (/opt/homebrew/bin/brew shellenv)
+    else
+        eval (/usr/local/bin/brew shellenv)
+    end
 end
 
 # Shared environment variables
@@ -31,8 +33,14 @@ if status is-interactive
     # fzf integration
     # https://github.com/junegunn/fzf#using-homebrew-or-linuxbrew
     if command -v fzf >/dev/null
-        if test -f (brew --prefix)/opt/fzf/shell/key-bindings.fish
-            source (brew --prefix)/opt/fzf/shell/key-bindings.fish
+        if test -f /usr/share/doc/fzf/examples/key-bindings.fish
+            source /usr/share/doc/fzf/examples/key-bindings.fish        # Ubuntu/Debian
+        else if test -f /usr/share/fzf/key-bindings.fish
+            source /usr/share/fzf/key-bindings.fish                      # Arch/CachyOS
+        else if type -q brew
+            if test -f (brew --prefix)/opt/fzf/shell/key-bindings.fish
+                source (brew --prefix)/opt/fzf/shell/key-bindings.fish  # macOS Homebrew
+            end
         end
     end
 

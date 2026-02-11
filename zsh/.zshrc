@@ -1,9 +1,11 @@
 . "$HOME/.config/zsh/profiler.start"
 
-if [ "$(arch)" = arm64 ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-else
-    eval "$(/usr/local/bin/brew shellenv)"
+if [[ "$(uname)" == "Darwin" ]]; then
+    if [ "$(arch)" = arm64 ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    else
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
 fi
 
 export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$HOME/.local/bin:$HOME/.bin:$PATH"
@@ -13,7 +15,9 @@ source "$HOME/dotfiles/shared/environment.sh"
 
 # Zsh-specific environment variables
 export ABBR_USER_ABBREVIATIONS_FILE="$XDG_CONFIG_HOME/zsh-abbr/abbreviations.zsh"
-export PKG_CONFIG_PATH="/opt/homebrew/opt/libpq/lib/pkgconfig"
+if [[ "$(uname)" == "Darwin" ]]; then
+  export PKG_CONFIG_PATH="/opt/homebrew/opt/libpq/lib/pkgconfig"
+fi
 export GPG_TTY=$(tty)
 
 . "$XDG_CONFIG_HOME/zsh/plugins.zsh" # Includes Zap - https://www.zapzsh.com
@@ -63,16 +67,29 @@ fi
 # https://github.com/junegunn/fzf#using-homebrew-or-linuxbrew
 if type fzf &>/dev/null; then
   # Setup fzf key bindings and fuzzy completion
-  if [[ -f "$(brew --prefix)/opt/fzf/shell/key-bindings.zsh" ]]; then
-    source "$(brew --prefix)/opt/fzf/shell/key-bindings.zsh"
+  if [[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]]; then
+    source /usr/share/doc/fzf/examples/key-bindings.zsh        # Ubuntu/Debian
+  elif [[ -f /usr/share/fzf/key-bindings.zsh ]]; then
+    source /usr/share/fzf/key-bindings.zsh                      # Arch/CachyOS
+  elif type brew &>/dev/null; then
+    if [[ -f "$(brew --prefix)/opt/fzf/shell/key-bindings.zsh" ]]; then
+      source "$(brew --prefix)/opt/fzf/shell/key-bindings.zsh"  # macOS Homebrew
+    fi
   fi
-  if [[ -f "$(brew --prefix)/opt/fzf/shell/completion.zsh" ]]; then
-    source "$(brew --prefix)/opt/fzf/shell/completion.zsh"
+
+  if [[ -f /usr/share/doc/fzf/examples/completion.zsh ]]; then
+    source /usr/share/doc/fzf/examples/completion.zsh           # Ubuntu/Debian
+  elif [[ -f /usr/share/fzf/completion.zsh ]]; then
+    source /usr/share/fzf/completion.zsh                        # Arch/CachyOS
+  elif type brew &>/dev/null; then
+    if [[ -f "$(brew --prefix)/opt/fzf/shell/completion.zsh" ]]; then
+      source "$(brew --prefix)/opt/fzf/shell/completion.zsh"    # macOS Homebrew
+    fi
   fi
 fi
 
 # Docker CLI completions
-fpath=(/Users/joshukraine/.docker/completions $fpath)
+fpath=("${HOME}/.docker/completions" $fpath)
 
 # Load and initialise completion system with caching for performance
 autoload -Uz compinit
