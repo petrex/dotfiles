@@ -15,12 +15,14 @@ export BUNDLER_EDITOR="${EDITOR}"
 # Manual page configuration
 export MANPAGER="less -X" # Don't clear the screen after quitting a manual page
 
-# Homebrew configuration
-export HOMEBREW_CASK_OPTS="--appdir=/Applications"
-
 # Development configuration
 export SOURCE_ANNOTATION_DIRECTORIES="spec"
-export RUBY_CONFIGURE_OPTS="--with-opt-dir=${HOMEBREW_PREFIX}/opt/openssl:${HOMEBREW_PREFIX}/opt/readline:${HOMEBREW_PREFIX}/opt/libyaml:${HOMEBREW_PREFIX}/opt/gdbm"
+
+# Platform-specific configuration
+if [[ "$(uname)" == "Darwin" ]]; then
+  export HOMEBREW_CASK_OPTS="--appdir=/Applications"
+  export RUBY_CONFIGURE_OPTS="--with-opt-dir=${HOMEBREW_PREFIX}/opt/openssl:${HOMEBREW_PREFIX}/opt/readline:${HOMEBREW_PREFIX}/opt/libyaml:${HOMEBREW_PREFIX}/opt/gdbm"
+fi
 
 # XDG Base Directory Specification
 export XDG_CONFIG_HOME="${HOME}/.config"
@@ -33,7 +35,11 @@ export DOTFILES="${HOME}/dotfiles"
 export RIPGREP_CONFIG_PATH="${HOME}/.ripgreprc"
 
 # 1Password SSH agent
-export SSH_AUTH_SOCK="${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+if [[ "$(uname)" == "Darwin" ]]; then
+  export SSH_AUTH_SOCK="${HOME}/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+elif [[ -S "${HOME}/.1password/agent.sock" ]]; then
+  export SSH_AUTH_SOCK="${HOME}/.1password/agent.sock"
+fi
 
 # Personal Knowledge Base
 export PKB_PATH="${HOME}/personal-knowledge-base"
