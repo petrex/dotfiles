@@ -55,6 +55,9 @@ abbr "bsv"="brew services"
 
 # config dirs
 abbr "cdot"="cd ${DOTFILES}"
+abbr "dfsync"="${DOTFILES}/scripts/sync-dotfiles.sh"
+abbr "dfsyncb"="${DOTFILES}/scripts/sync-dotfiles.sh --backup"
+abbr "dfsyncd"="${DOTFILES}/scripts/sync-dotfiles.sh --dry-run"
 abbr "cdxc"="cd ${XDG_CONFIG_HOME}"
 abbr "cdfi"="cd ${XDG_CONFIG_HOME}/fish"
 abbr "cdnv"="cd ${XDG_CONFIG_HOME}/nvim"
