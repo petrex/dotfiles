@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+#
+# AI-powered command output explainer
+# Pipes stdin to claude CLI for human-readable explanation
+#
+# Usage: some_command 2>&1 | ai-explain
+#        ai-explain < logfile.txt
+#
+# Prerequisites: claude CLI (npm i -g @anthropic-ai/claude-code)
+
+set -euo pipefail
+
+if ! command -v claude >/dev/null 2>&1; then
+	echo "Error: claude CLI not installed." >&2
+	echo "Install: npm i -g @anthropic-ai/claude-code" >&2
+	exit 1
+fi
+
+if [[ -t 0 ]]; then
+	echo "Usage: some_command 2>&1 | ai-explain" >&2
+	echo "       ai-explain < logfile.txt" >&2
+	exit 1
+fi
+
+input=$(head -c 100000)
+
+if [[ -z "${input}" ]]; then
+	echo "Error: No input received." >&2
+	exit 1
+fi
+
+prompt="Explain this command output in plain English. Be concise and focus on what matters. If there are errors, explain what went wrong and how to fix it.
+
+Output:
+${input}"
+
+echo "${prompt}" | claude --print
