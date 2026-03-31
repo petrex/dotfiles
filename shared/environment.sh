@@ -15,6 +15,16 @@ export BUNDLER_EDITOR="${EDITOR}"
 # Manual page configuration
 export MANPAGER="less -X" # Don't clear the screen after quitting a manual page
 
+# Detect HOMEBREW_PREFIX if not already set (Apple Silicon vs Intel)
+if [[ -z "${HOMEBREW_PREFIX}" ]]; then
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    export HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    export HOMEBREW_PREFIX="/usr/local"
+  fi
+fi
+
+
 # Development configuration
 export SOURCE_ANNOTATION_DIRECTORIES="spec"
 

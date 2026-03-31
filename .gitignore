@@ -21,3 +21,18 @@ vim/bundle
 # Scratchpads for temporary files, notes, and debugging
 scratchpads/
 *.rej
+
+# Claude Code runtime files (machine-specific, not config)
+claude/.claude/debug/
+claude/.claude/file-history/
+claude/.claude/history.jsonl
+claude/.claude/plugins/
+claude/.claude/projects/
+claude/.claude/settings.local.json
+claude/.claude/shell-snapshots/
+claude/.claude/stats-cache.json
+claude/.claude/statsig/
+claude/.claude/todos/
+
+# Backup files
+*.bak

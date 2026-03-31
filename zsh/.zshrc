@@ -89,7 +89,9 @@ if type fzf &>/dev/null; then
 fi
 
 # Docker CLI completions
-fpath=("${HOME}/.docker/completions" $fpath)
+if [[ -d "${HOME}/.docker/completions" ]]; then
+  fpath=("${HOME}/.docker/completions" $fpath)
+fi
 
 # Load and initialise completion system with caching for performance
 autoload -Uz compinit
