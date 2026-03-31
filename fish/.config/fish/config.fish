@@ -27,7 +27,8 @@ if status is-interactive
     # Load fzf-git.sh for enhanced git operations with fuzzy finding
     if test -f $DOTFILES/bin/fzf-git.sh
         source $DOTFILES/bin/fzf-git.sh
-        
+    end
+
     # fzf integration
     # https://github.com/junegunn/fzf#using-homebrew-or-linuxbrew
     if command -v fzf >/dev/null
