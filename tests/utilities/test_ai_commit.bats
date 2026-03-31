@@ -14,10 +14,6 @@ setup() {
 teardown() {
   teardown_test_git_repo
   restore_path
-  # Clean up any mock claude
-  if [[ -n "${MOCK_CLAUDE_DIR:-}" ]]; then
-    rm -rf "$MOCK_CLAUDE_DIR"
-  fi
 }
 
 # Helper to remove claude from PATH for guard clause tests

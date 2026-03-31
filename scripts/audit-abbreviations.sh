@@ -109,25 +109,20 @@ done
 
 # --- Find promotable commands ---
 
+# Build reverse lookup: set of all base commands and abbreviation names that are covered
+declare -A covered_cmds
+for abbr in "${!abbr_map[@]}"; do
+  covered_cmds["${abbr}"]=1
+  base_cmd="${abbr_map[${abbr}]%% *}"
+  covered_cmds["${base_cmd}"]=1
+done
+
 promotable=()
 
 for cmd in "${!cmd_freq[@]}"; do
   count=${cmd_freq["${cmd}"]}
-  if [[ ${count} -ge ${PROMOTE_THRESHOLD} ]]; then
-    # Check if this command already has an abbreviation
-    has_abbr=false
-    for abbr in "${!abbr_map[@]}"; do
-      expanded="${abbr_map[${abbr}]}"
-      base_cmd="${expanded%% *}"
-      if [[ "${base_cmd}" == "${cmd}" || "${abbr}" == "${cmd}" ]]; then
-        has_abbr=true
-        break
-      fi
-    done
-
-    if [[ "${has_abbr}" == "false" ]]; then
-      promotable+=("${cmd} (used ${count} times)")
-    fi
+  if [[ ${count} -ge ${PROMOTE_THRESHOLD} && -z "${covered_cmds["${cmd}"]:-}" ]]; then
+    promotable+=("${cmd} (used ${count} times)")
   fi
 done
 
