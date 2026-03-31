@@ -72,3 +72,9 @@ set OP_PLUGINS_FILE "$HOME/.config/op/plugins.sh"
 if test -f "$OP_PLUGINS_FILE"
     source "$OP_PLUGINS_FILE"
 end
+
+# Initialize Atuin for shell history
+# https://github.com/atuinsh/atuin
+if command -v atuin >/dev/null
+    atuin init fish | source
+end

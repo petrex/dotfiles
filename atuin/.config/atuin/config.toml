@@ -1,0 +1,35 @@
+# Atuin configuration
+# https://docs.atuin.sh/configuration/config/
+
+## General settings
+# Search mode: prefix, fulltext, fuzzy, skim
+search_mode = "fuzzy"
+
+# Filter mode for search: global, host, session, directory
+filter_mode = "global"
+
+# Style: auto, full, compact
+style = "auto"
+
+# Show preview of the selected command
+show_preview = true
+
+# Maximum preview height
+max_preview_height = 4
+
+## History settings
+# Store in plain text (for the abbreviation auditor to query)
+dialect = "us"
+
+## Sync settings
+# Sync is disabled by default. To enable:
+#   1. Run: atuin register (or atuin login)
+#   2. Uncomment sync_address below
+#   3. Run: atuin sync
+#
+# sync_address = "https://api.atuin.sh"
+# sync_frequency = "5m"
+
+## Key bindings
+# Use Ctrl+R for search (replaces default reverse search)
+# Configured via shell eval lines in .zshrc and config.fish
