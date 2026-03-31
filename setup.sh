@@ -17,6 +17,7 @@ set -e # Terminate script if anything exits with a non-zero value
 
 # Global variables
 DRY_RUN=false
+SETUP_OS="" # "macos" | "linux" — set in check_prerequisites()
 
 show_help() {
   cat <<EOF
@@ -148,13 +149,28 @@ check_prerequisites() {
   local osname
   osname=$(uname)
 
-  if [ "${osname}" != "Darwin" ]; then
-    dotfiles_error "This script only supports macOS. Current OS: %s" "${osname}"
-    exit 1
-  fi
+  case "${osname}" in
+    Darwin)
+      SETUP_OS="macos"
+      dotfiles_info "macOS detected"
+      ;;
+    Linux)
+      SETUP_OS="linux"
+      dotfiles_info "Linux detected"
+      ;;
+    *)
+      dotfiles_error "Unsupported operating system: %s" "${osname}"
+      exit 1
+      ;;
+  esac
 
   if ! command -v stow >/dev/null; then
-    dotfiles_error "GNU Stow is required but was not found. Try: brew install stow"
+    dotfiles_error "GNU Stow is required but was not found."
+    if [[ "${SETUP_OS}" == "macos" ]]; then
+      dotfiles_error "Try: brew install stow"
+    else
+      dotfiles_error "Try: sudo apt install stow (or sudo pacman -S stow)"
+    fi
     exit 1
   fi
 
@@ -172,24 +188,40 @@ check_prerequisites() {
 setup_hostname() {
   dotfiles_echo "Setting HostName..."
 
-  local computer_name local_host_name host_name
-  computer_name=$(scutil --get ComputerName)
-  local_host_name=$(scutil --get LocalHostName)
+  case "${SETUP_OS}" in
+    macos)
+      local computer_name local_host_name host_name
+      computer_name=$(scutil --get ComputerName)
+      local_host_name=$(scutil --get LocalHostName)
 
-  if [[ "${DRY_RUN}" == "true" ]]; then
-    dotfiles_info "[DRY RUN] Would set HostName to: %s" "${local_host_name}"
-    dotfiles_info "[DRY RUN] Would update NetBIOSName in SMB server config"
-  else
-    run_command "sudo scutil --set HostName '${local_host_name}'" "Set system hostname"
-    host_name=$(scutil --get HostName)
-    run_command "sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server.plist NetBIOSName -string '${host_name}'" "Update SMB server NetBIOS name"
-  fi
+      if [[ "${DRY_RUN}" == "true" ]]; then
+        dotfiles_info "[DRY RUN] Would set HostName to: %s" "${local_host_name}"
+        dotfiles_info "[DRY RUN] Would update NetBIOSName in SMB server config"
+      else
+        run_command "sudo scutil --set HostName '${local_host_name}'" "Set system hostname"
+        host_name=$(scutil --get HostName)
+        run_command "sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server.plist NetBIOSName -string '${host_name}'" "Update SMB server NetBIOS name"
+      fi
 
-  printf "ComputerName:  ==> [%s]\\n" "${computer_name}"
-  printf "LocalHostName: ==> [%s]\\n" "${local_host_name}"
-  if [[ "${DRY_RUN}" == "false" ]]; then
-    printf "HostName:      ==> [%s]\\n" "$(scutil --get HostName)"
-  fi
+      printf "ComputerName:  ==> [%s]\\n" "${computer_name}"
+      printf "LocalHostName: ==> [%s]\\n" "${local_host_name}"
+      if [[ "${DRY_RUN}" == "false" ]]; then
+        printf "HostName:      ==> [%s]\\n" "$(scutil --get HostName)"
+      fi
+      ;;
+    linux)
+      local current_hostname
+      current_hostname=$(hostname)
+      dotfiles_info "Current hostname: %s" "${current_hostname}"
+
+      if [[ "${DRY_RUN}" == "true" ]]; then
+        dotfiles_info "[DRY RUN] Hostname is already set to: %s" "${current_hostname}"
+        dotfiles_info "[DRY RUN] To change, run: sudo hostnamectl set-hostname <new-name>"
+      else
+        dotfiles_info "Hostname: %s (use 'sudo hostnamectl set-hostname <name>' to change)" "${current_hostname}"
+      fi
+      ;;
+  esac
 }
 
 setup_directories() {
@@ -225,17 +257,21 @@ setup_directories() {
     fi
   fi
 
-  dotfiles_echo "Checking your system architecture..."
+  if [[ "${SETUP_OS}" == "macos" ]]; then
+    dotfiles_echo "Checking your system architecture..."
 
-  local arch
-  arch="$(uname -m)"
+    local arch
+    arch="$(uname -m)"
 
-  if [ "${arch}" == "arm64" ]; then
-    dotfiles_info "Apple Silicon detected - setting HOMEBREW_PREFIX to /opt/homebrew"
-    HOMEBREW_PREFIX="/opt/homebrew"
+    if [ "${arch}" == "arm64" ]; then
+      dotfiles_info "Apple Silicon detected - setting HOMEBREW_PREFIX to /opt/homebrew"
+      HOMEBREW_PREFIX="/opt/homebrew"
+    else
+      dotfiles_info "Intel Mac detected - setting HOMEBREW_PREFIX to /usr/local"
+      HOMEBREW_PREFIX="/usr/local"
+    fi
   else
-    dotfiles_info "Intel Mac detected - setting HOMEBREW_PREFIX to /usr/local"
-    HOMEBREW_PREFIX="/usr/local"
+    dotfiles_info "Linux detected - skipping HOMEBREW_PREFIX setup"
   fi
 }
 
@@ -348,7 +384,12 @@ setup_symlinks() {
 setup_shell_integration() {
   if command -v fish &>/dev/null; then
     dotfiles_echo "Initializing fish_user_paths..."
-    local fish_cmd="set -U fish_user_paths ${HOME}/.asdf/shims ${HOME}/.local/bin ${HOME}/.bin ${HOME}/.yarn/bin ${HOMEBREW_PREFIX}/bin"
+    local fish_cmd
+    if [[ "${SETUP_OS}" == "macos" ]]; then
+      fish_cmd="set -U fish_user_paths ${HOME}/.asdf/shims ${HOME}/.local/bin ${HOME}/.bin ${HOME}/.yarn/bin ${HOMEBREW_PREFIX}/bin"
+    else
+      fish_cmd="set -U fish_user_paths ${HOME}/.asdf/shims ${HOME}/.local/bin ${HOME}/.bin ${HOME}/.yarn/bin"
+    fi
     if [[ "${DRY_RUN}" == "true" ]]; then
       dotfiles_info "[DRY RUN] Would run: fish -c '%s'" "${fish_cmd}"
     else

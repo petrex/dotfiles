@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## About This Repository
 
-This is a personal dotfiles repository for macOS using GNU Stow for symlink management. It provides a comprehensive development environment configuration including shell setups (Zsh/Fish), terminal configurations (ghostty/kitty), and Neovim with LazyVim distribution.
+This is a personal dotfiles repository for macOS and Linux (Ubuntu, CachyOS/Arch) using GNU Stow for symlink management. It provides a comprehensive development environment configuration including shell setups (Zsh/Fish), terminal configurations (ghostty/kitty), and Neovim with LazyVim distribution.
 
 ## Repository Structure
 
@@ -24,6 +24,7 @@ The repository is organized with each top-level directory representing a tool or
 - `markdown/` - Markdown-related configuration
 - `node/` - Node.js configuration
 - `nvim/` - Neovim configuration using LazyVim distribution
+- `packages/` - Linux package lists (apt.txt, pacman.txt) and extra install scripts
 - `rc/` - Various RC files (.inputrc, .curlrc, etc.)
 - `ruby/` - Ruby configuration (.gemrc, .irbrc)
 - `spell/` - Custom spell dictionaries for multiple languages
@@ -178,6 +179,7 @@ Some directories contain repository infrastructure and should not be symlinked t
 **Example directories using this pattern:**
 
 - `docs/` - Repository documentation
+- `packages/` - Linux package lists and install scripts
 - `scripts/` - Build and utility scripts
 - `tests/` - Test files and fixtures
 - `shared/` - Shared configuration generators
@@ -200,14 +202,21 @@ Some directories contain repository infrastructure and should not be symlinked t
 
 ### Package Management
 
-- Homebrew via `brew/Brewfile` for system packages and applications
+- **macOS**: Homebrew via `brew/Brewfile` for system packages and applications
+- **Ubuntu/Debian**: apt via `packages/apt.txt` + `packages/ubuntu-extra.sh` for PPAs and binary installs
+- **CachyOS/Arch**: pacman via `packages/pacman.txt` + `packages/cachyos-extra.sh` for AUR/extras
 - asdf for runtime version management (Node.js, Ruby, etc.)
-- Fonts installed via Homebrew Cask Fonts
+- Fonts installed via Homebrew Cask Fonts (macOS)
 
 ## Important Files
 
-- `setup.sh` - Main installation script
-- `brew/Brewfile` - Homebrew package definitions
+- `setup.sh` - Main installation script (macOS + Linux)
+- `scripts/bootstrap.sh` - Full machine bootstrap (macOS, Ubuntu, CachyOS/Arch)
+- `brew/Brewfile` - Homebrew package definitions (macOS)
+- `packages/apt.txt` - Ubuntu/Debian apt package list
+- `packages/pacman.txt` - CachyOS/Arch pacman package list
+- `packages/ubuntu-extra.sh` - Ubuntu PPAs and binary installs
+- `packages/cachyos-extra.sh` - CachyOS/Arch extra installs
 - `shared/abbreviations.yaml` - **Single source of truth for all abbreviations**
 - `shared/environment.sh` and `shared/environment.fish` - Shared environment variables
 - `shared/generate-*-abbr.sh` - Scripts to generate shell-specific abbreviations
@@ -269,6 +278,10 @@ scratchpads/
 
 ## Platform Support
 
-- **macOS only** - setup script checks for Darwin and exits on other platforms
-- **Apple Silicon and Intel** - automatically detects architecture and sets HOMEBREW_PREFIX accordingly
+- **macOS** - Apple Silicon and Intel, uses Homebrew for package management
+- **Ubuntu / Debian** - uses apt, with PPAs and binary installs for extras (`packages/ubuntu-extra.sh`)
+- **CachyOS / Arch Linux** - uses pacman (chaotic-aur), with AUR helper support (`packages/cachyos-extra.sh`)
+- **Architecture detection** - automatically sets HOMEBREW_PREFIX on macOS (Apple Silicon vs Intel)
 - **XDG Base Directory** support with automatic directory creation
+- Shell configs (Zsh, Fish, environment variables) are cross-platform with macOS/Linux guards
+- `bootstrap.sh` detects OS/distro via `uname` and `/etc/os-release`, sets `OS`, `DISTRO`, `PKG_MGR` globals

@@ -5,9 +5,9 @@ set -e
 ################################################################################
 # bootstrap.sh
 #
-# Single bootstrap script to set up a fresh Mac from zero. Installs
-# prerequisites, clones the dotfiles repo, runs setup.sh, installs language
-# runtimes, and configures the default shell.
+# Single bootstrap script to set up a fresh macOS, Ubuntu, or CachyOS/Arch
+# machine from zero. Installs prerequisites, clones the dotfiles repo, runs
+# setup.sh, installs language runtimes, and configures the default shell.
 #
 # Usage:
 #   bash <(curl -fsSL https://raw.githubusercontent.com/pyeh/dotfiles/master/scripts/bootstrap.sh)
@@ -17,8 +17,13 @@ set -e
 #
 # Options:
 #   --dry-run            Show what would be done without making changes
-#   --skip-brew-bundle   Skip the full Brewfile install (Phase 9)
+#   --skip-brew-bundle   Skip the full Brewfile install (macOS Phase 8)
 #   --help               Show this help message
+#
+# Supported platforms:
+#   macOS (Apple Silicon + Intel)
+#   Ubuntu / Debian (apt)
+#   CachyOS / Arch Linux (pacman)
 ################################################################################
 
 # ---------------------------------------------------------------------------
@@ -31,6 +36,12 @@ DOTFILES_BRANCH="master"
 
 DRY_RUN=false
 SKIP_BREW_BUNDLE=false
+
+# Platform globals — set in preflight()
+OS=""           # "macos" | "linux"
+DISTRO=""       # "macos" | "ubuntu" | "cachyos" | "arch"
+PKG_MGR=""      # "brew" | "apt" | "pacman"
+HOMEBREW_PREFIX=""
 
 # Logging helpers (mirrors setup.sh patterns)
 bootstrap_echo() {
@@ -80,19 +91,25 @@ show_help() {
   cat <<EOF
 Usage: $0 [OPTIONS]
 
-Bootstrap a fresh Mac from zero. Installs prerequisites, clones dotfiles,
-runs setup.sh, installs language runtimes, and configures the default shell.
+Bootstrap a fresh macOS, Ubuntu, or CachyOS/Arch machine from zero.
+Installs prerequisites, clones dotfiles, runs setup.sh, installs language
+runtimes, and configures the default shell.
+
+Supported platforms:
+  macOS (Apple Silicon + Intel) — uses Homebrew
+  Ubuntu / Debian              — uses apt
+  CachyOS / Arch Linux         — uses pacman
 
 Options:
   --dry-run            Show what would be done without making changes
-  --skip-brew-bundle   Skip the full Brewfile install (fastest re-run)
+  --skip-brew-bundle   Skip the full Brewfile install (macOS only)
   --help               Show this help message
 
 Examples:
   bash <(curl -fsSL https://raw.githubusercontent.com/pyeh/dotfiles/master/scripts/bootstrap.sh)
   $0                      # Full bootstrap
   $0 --dry-run            # Preview all phases
-  $0 --skip-brew-bundle   # Skip lengthy Brewfile install
+  $0 --skip-brew-bundle   # Skip lengthy Brewfile install (macOS)
 EOF
 }
 
@@ -125,21 +142,61 @@ preflight() {
 
   local osname
   osname="$(uname)"
-  if [[ "${osname}" != "Darwin" ]]; then
-    bootstrap_error "This script only supports macOS. Current OS: %s" "${osname}"
-    exit 1
-  fi
-  bootstrap_info "macOS detected"
 
-  local arch
-  arch="$(uname -m)"
-  if [[ "${arch}" == "arm64" ]]; then
-    HOMEBREW_PREFIX="/opt/homebrew"
-    bootstrap_info "Apple Silicon detected — HOMEBREW_PREFIX=%s" "${HOMEBREW_PREFIX}"
-  else
-    HOMEBREW_PREFIX="/usr/local"
-    bootstrap_info "Intel Mac detected — HOMEBREW_PREFIX=%s" "${HOMEBREW_PREFIX}"
-  fi
+  case "${osname}" in
+    Darwin)
+      OS="macos"
+      DISTRO="macos"
+      PKG_MGR="brew"
+      bootstrap_info "macOS detected"
+
+      local arch
+      arch="$(uname -m)"
+      if [[ "${arch}" == "arm64" ]]; then
+        HOMEBREW_PREFIX="/opt/homebrew"
+        bootstrap_info "Apple Silicon detected — HOMEBREW_PREFIX=%s" "${HOMEBREW_PREFIX}"
+      else
+        HOMEBREW_PREFIX="/usr/local"
+        bootstrap_info "Intel Mac detected — HOMEBREW_PREFIX=%s" "${HOMEBREW_PREFIX}"
+      fi
+      ;;
+    Linux)
+      OS="linux"
+      if [[ -f /etc/os-release ]]; then
+        # shellcheck source=/dev/null
+        source /etc/os-release
+        case "${ID}" in
+          ubuntu|debian)
+            DISTRO="ubuntu"
+            PKG_MGR="apt"
+            bootstrap_info "Ubuntu/Debian detected — using apt"
+            ;;
+          cachyos)
+            DISTRO="cachyos"
+            PKG_MGR="pacman"
+            bootstrap_info "CachyOS detected — using pacman"
+            ;;
+          arch)
+            # shellcheck disable=SC2034
+            DISTRO="arch"
+            PKG_MGR="pacman"
+            bootstrap_info "Arch Linux detected — using pacman"
+            ;;
+          *)
+            bootstrap_error "Unsupported Linux distribution: %s" "${ID}"
+            exit 1
+            ;;
+        esac
+      else
+        bootstrap_error "/etc/os-release not found — cannot detect distribution"
+        exit 1
+      fi
+      ;;
+    *)
+      bootstrap_error "Unsupported operating system: %s" "${osname}"
+      exit 1
+      ;;
+  esac
 
   if [[ "${DRY_RUN}" == "true" ]]; then
     bootstrap_echo "DRY RUN MODE — no changes will be made"
@@ -147,38 +204,60 @@ preflight() {
 }
 
 # ---------------------------------------------------------------------------
-# Phase 1: Xcode Command Line Tools
+# Phase 1: Build Tools
 # ---------------------------------------------------------------------------
 
-install_xcode_cli_tools() {
-  bootstrap_echo "Phase 1: Xcode Command Line Tools"
+install_build_tools() {
+  bootstrap_echo "Phase 1: Build tools"
 
-  if xcode-select -p &>/dev/null; then
-    bootstrap_info "Xcode CLI tools already installed"
-    return
-  fi
+  case "${OS}" in
+    macos)
+      # Xcode Command Line Tools
+      if xcode-select -p &>/dev/null; then
+        bootstrap_info "Xcode CLI tools already installed"
+        return
+      fi
 
-  if [[ "${DRY_RUN}" == "true" ]]; then
-    bootstrap_info "[DRY RUN] Would install Xcode CLI tools"
-    return
-  fi
+      if [[ "${DRY_RUN}" == "true" ]]; then
+        bootstrap_info "[DRY RUN] Would install Xcode CLI tools"
+        return
+      fi
 
-  bootstrap_info "Installing Xcode Command Line Tools..."
-  xcode-select --install
+      bootstrap_info "Installing Xcode Command Line Tools..."
+      xcode-select --install
 
-  bootstrap_info "Waiting for Xcode CLI tools installation to complete..."
-  until xcode-select -p &>/dev/null; do
-    sleep 5
-  done
-  bootstrap_info "Xcode CLI tools installed"
+      bootstrap_info "Waiting for Xcode CLI tools installation to complete..."
+      until xcode-select -p &>/dev/null; do
+        sleep 5
+      done
+      bootstrap_info "Xcode CLI tools installed"
+      ;;
+    linux)
+      case "${PKG_MGR}" in
+        apt)
+          run_cmd "sudo apt update && sudo apt install -y build-essential curl git" \
+            "Install build essentials for Ubuntu"
+          ;;
+        pacman)
+          run_cmd "sudo pacman -Syu --noconfirm && sudo pacman -S --needed --noconfirm base-devel curl git" \
+            "Install build essentials for Arch/CachyOS"
+          ;;
+      esac
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
-# Phase 2: Rosetta 2 (Apple Silicon only)
+# Phase 2: Rosetta 2 (macOS Apple Silicon only)
 # ---------------------------------------------------------------------------
 
 install_rosetta() {
   bootstrap_echo "Phase 2: Rosetta 2"
+
+  if [[ "${OS}" != "macos" ]]; then
+    bootstrap_info "Not macOS — skipping Rosetta"
+    return
+  fi
 
   if [[ "$(uname -m)" != "arm64" ]]; then
     bootstrap_info "Not Apple Silicon — skipping Rosetta"
@@ -194,40 +273,62 @@ install_rosetta() {
 }
 
 # ---------------------------------------------------------------------------
-# Phase 3: Homebrew + Minimal Formulae
+# Phase 3: Package Manager + Minimal Packages
 # ---------------------------------------------------------------------------
 
-install_homebrew() {
-  bootstrap_echo "Phase 3: Homebrew + minimal formulae"
+install_packages_minimal() {
+  bootstrap_echo "Phase 3: Package manager + minimal packages"
 
-  if command -v "${HOMEBREW_PREFIX}/bin/brew" &>/dev/null; then
-    bootstrap_info "Homebrew already installed"
-  else
-    if [[ "${DRY_RUN}" == "true" ]]; then
-      bootstrap_info "[DRY RUN] Would install Homebrew"
-    else
-      bootstrap_info "Installing Homebrew..."
-      NONINTERACTIVE=1 /bin/bash -c \
-        "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    fi
-  fi
+  case "${PKG_MGR}" in
+    brew)
+      if command -v "${HOMEBREW_PREFIX}/bin/brew" &>/dev/null; then
+        bootstrap_info "Homebrew already installed"
+      else
+        if [[ "${DRY_RUN}" == "true" ]]; then
+          bootstrap_info "[DRY RUN] Would install Homebrew"
+        else
+          bootstrap_info "Installing Homebrew..."
+          NONINTERACTIVE=1 /bin/bash -c \
+            "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+      fi
 
-  # Ensure brew is on PATH for this session
-  if [[ "${DRY_RUN}" == "false" ]]; then
-    eval "$("${HOMEBREW_PREFIX}/bin/brew" shellenv)"
-  fi
+      # Ensure brew is on PATH for this session
+      if [[ "${DRY_RUN}" == "false" ]]; then
+        eval "$("${HOMEBREW_PREFIX}/bin/brew" shellenv)"
+      fi
 
-  # Minimal formulae needed for subsequent phases
-  local minimal_formulae=(git stow coreutils openssl@3 libyaml readline zsh)
+      # Minimal formulae needed for subsequent phases
+      local minimal_formulae=(git stow coreutils openssl@3 libyaml readline zsh)
 
-  bootstrap_info "Installing minimal formulae: %s" "${minimal_formulae[*]}"
-  for formula in "${minimal_formulae[@]}"; do
-    if [[ "${DRY_RUN}" == "true" ]]; then
-      bootstrap_info "[DRY RUN] Would install: %s" "${formula}"
-    else
-      brew install "${formula}" 2>/dev/null || true
-    fi
-  done
+      bootstrap_info "Installing minimal formulae: %s" "${minimal_formulae[*]}"
+      for formula in "${minimal_formulae[@]}"; do
+        if [[ "${DRY_RUN}" == "true" ]]; then
+          bootstrap_info "[DRY RUN] Would install: %s" "${formula}"
+        else
+          brew install "${formula}" 2>/dev/null || true
+        fi
+      done
+      ;;
+    apt)
+      local minimal_apt=(git stow zsh curl build-essential)
+      bootstrap_info "Installing minimal apt packages: %s" "${minimal_apt[*]}"
+      if [[ "${DRY_RUN}" == "true" ]]; then
+        bootstrap_info "[DRY RUN] Would install: %s" "${minimal_apt[*]}"
+      else
+        sudo apt install -y "${minimal_apt[@]}"
+      fi
+      ;;
+    pacman)
+      local minimal_pacman=(git stow zsh curl base-devel)
+      bootstrap_info "Installing minimal pacman packages: %s" "${minimal_pacman[*]}"
+      if [[ "${DRY_RUN}" == "true" ]]; then
+        bootstrap_info "[DRY RUN] Would install: %s" "${minimal_pacman[*]}"
+      else
+        sudo pacman -S --needed --noconfirm "${minimal_pacman[@]}"
+      fi
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -317,11 +418,39 @@ install_asdf_languages() {
   bootstrap_echo "Phase 6: asdf + language runtimes"
 
   if [[ "${DRY_RUN}" == "false" ]]; then
-    brew install asdf 2>/dev/null || true
-    # shellcheck source=/dev/null
-    source "$(brew --prefix asdf)/libexec/asdf.sh" 2>/dev/null || true
+    case "${OS}" in
+      macos)
+        brew install asdf 2>/dev/null || true
+        # shellcheck source=/dev/null
+        source "$(brew --prefix asdf)/libexec/asdf.sh" 2>/dev/null || true
+        ;;
+      linux)
+        if [[ ! -d "${HOME}/.asdf" ]]; then
+          bootstrap_info "Installing asdf via git clone..."
+          git clone https://github.com/asdf-vm/asdf.git "${HOME}/.asdf" --branch v0.15.0
+        else
+          bootstrap_info "asdf already installed at ~/.asdf"
+        fi
+        # shellcheck source=/dev/null
+        source "${HOME}/.asdf/asdf.sh"
+
+        # Install asdf build dependencies on Ubuntu
+        if [[ "${PKG_MGR}" == "apt" ]]; then
+          bootstrap_info "Installing asdf build dependencies for Ubuntu..."
+          sudo apt install -y autoconf bison libssl-dev libreadline-dev \
+            zlib1g-dev libncurses-dev libffi-dev libgdbm-dev libyaml-dev
+        fi
+        ;;
+    esac
   else
-    bootstrap_info "[DRY RUN] Would install asdf via Homebrew"
+    case "${OS}" in
+      macos)
+        bootstrap_info "[DRY RUN] Would install asdf via Homebrew"
+        ;;
+      linux)
+        bootstrap_info "[DRY RUN] Would install asdf via git clone"
+        ;;
+    esac
   fi
 
   add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
@@ -341,7 +470,11 @@ install_asdf_languages() {
     bootstrap_info "[DRY RUN] Would configure bundler jobs"
   else
     local num_cpus
-    num_cpus="$(sysctl -n hw.ncpu)"
+    if [[ "${OS}" == "macos" ]]; then
+      num_cpus="$(sysctl -n hw.ncpu)"
+    else
+      num_cpus="$(nproc)"
+    fi
     bundle config --global jobs "$((num_cpus - 1))" 2>/dev/null || true
   fi
 }
@@ -398,27 +531,111 @@ install_gems_and_npm() {
 }
 
 # ---------------------------------------------------------------------------
-# Phase 9: Zsh + Zap (after brew bundle so eza, starship, zsh-abbr, zoxide are available)
+# Phase 8: Full Package Install
+# ---------------------------------------------------------------------------
+
+install_packages_full() {
+  bootstrap_echo "Phase 8: Full package install"
+
+  case "${PKG_MGR}" in
+    brew)
+      if [[ "${SKIP_BREW_BUNDLE}" == "true" ]]; then
+        bootstrap_info "Skipping brew bundle install (--skip-brew-bundle)"
+        return
+      fi
+
+      if [[ ! -f "${HOME}/Brewfile" ]]; then
+        bootstrap_warn "%s/Brewfile not found — skipping brew bundle" "${HOME}"
+        return
+      fi
+
+      run_cmd "brew bundle install --file='${HOME}/Brewfile'" \
+        "Install packages from Brewfile (this may take a while)"
+      ;;
+    apt)
+      local pkg_file="${DOTFILES_DIR}/packages/apt.txt"
+      if [[ ! -f "${pkg_file}" ]]; then
+        bootstrap_warn "packages/apt.txt not found — skipping"
+        return
+      fi
+
+      bootstrap_info "Installing apt packages from packages/apt.txt..."
+      if [[ "${DRY_RUN}" == "true" ]]; then
+        bootstrap_info "[DRY RUN] Would install packages from %s" "${pkg_file}"
+      else
+        # shellcheck disable=SC2046
+        sudo apt install -y $(cat "${pkg_file}")
+      fi
+
+      # Install extra tools (PPAs, binaries, etc.)
+      local extra_script="${DOTFILES_DIR}/packages/ubuntu-extra.sh"
+      if [[ -f "${extra_script}" ]]; then
+        bootstrap_info "Running ubuntu-extra.sh for additional tools..."
+        if [[ "${DRY_RUN}" == "true" ]]; then
+          bootstrap_info "[DRY RUN] Would source %s" "${extra_script}"
+        else
+          # shellcheck source=../packages/ubuntu-extra.sh
+          source "${extra_script}"
+        fi
+      fi
+      ;;
+    pacman)
+      local pkg_file="${DOTFILES_DIR}/packages/pacman.txt"
+      if [[ ! -f "${pkg_file}" ]]; then
+        bootstrap_warn "packages/pacman.txt not found — skipping"
+        return
+      fi
+
+      bootstrap_info "Installing pacman packages from packages/pacman.txt..."
+      if [[ "${DRY_RUN}" == "true" ]]; then
+        bootstrap_info "[DRY RUN] Would install packages from %s" "${pkg_file}"
+      else
+        # shellcheck disable=SC2046
+        sudo pacman -S --needed --noconfirm $(cat "${pkg_file}")
+      fi
+
+      # Install extra tools (AUR, etc.)
+      local extra_script="${DOTFILES_DIR}/packages/cachyos-extra.sh"
+      if [[ -f "${extra_script}" ]]; then
+        bootstrap_info "Running cachyos-extra.sh for additional tools..."
+        if [[ "${DRY_RUN}" == "true" ]]; then
+          bootstrap_info "[DRY RUN] Would source %s" "${extra_script}"
+        else
+          # shellcheck source=../packages/cachyos-extra.sh
+          source "${extra_script}"
+        fi
+      fi
+      ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# Phase 9: Zsh + Zap
 # ---------------------------------------------------------------------------
 
 setup_zsh() {
   bootstrap_echo "Phase 9: Zsh + Zap"
 
-  local brew_zsh="${HOMEBREW_PREFIX}/bin/zsh"
-
-  # Add Homebrew zsh to /etc/shells if missing
-  if ! grep -Fq "${brew_zsh}" /etc/shells 2>/dev/null; then
-    run_cmd "echo '${brew_zsh}' | sudo tee -a /etc/shells" \
-      "Add Homebrew Zsh to /etc/shells"
+  local zsh_path
+  if [[ "${OS}" == "macos" ]]; then
+    zsh_path="${HOMEBREW_PREFIX}/bin/zsh"
   else
-    bootstrap_info "Homebrew Zsh already in /etc/shells"
+    zsh_path="$(command -v zsh)"
+  fi
+
+  # Add zsh to /etc/shells if missing
+  if ! grep -Fq "${zsh_path}" /etc/shells 2>/dev/null; then
+    run_cmd "echo '${zsh_path}' | sudo tee -a /etc/shells" \
+      "Add Zsh to /etc/shells"
+  else
+    bootstrap_info "Zsh already in /etc/shells"
   fi
 
   # Set as default shell
-  if [[ "${SHELL}" != "${brew_zsh}" ]]; then
-    run_cmd "chsh -s '${brew_zsh}'" "Set Homebrew Zsh as default shell"
+  if [[ "${SHELL}" != "${zsh_path}" ]]; then
+    run_cmd "chsh -s '${zsh_path}'" "Set Zsh as default shell"
   else
-    bootstrap_info "Homebrew Zsh already the default shell"
+    bootstrap_info "Zsh already the default shell"
   fi
 
   # Install Zap plugin manager
@@ -432,27 +649,6 @@ setup_zsh() {
       zsh <(curl -fsSL https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1 --keep
     fi
   fi
-}
-
-# ---------------------------------------------------------------------------
-# Phase 8: brew bundle install
-# ---------------------------------------------------------------------------
-
-run_brew_bundle() {
-  bootstrap_echo "Phase 8: brew bundle install"
-
-  if [[ "${SKIP_BREW_BUNDLE}" == "true" ]]; then
-    bootstrap_info "Skipping brew bundle install (--skip-brew-bundle)"
-    return
-  fi
-
-  if [[ ! -f "${HOME}/Brewfile" ]]; then
-    bootstrap_warn "%s/Brewfile not found — skipping brew bundle" "${HOME}"
-    return
-  fi
-
-  run_cmd "brew bundle install --file='${HOME}/Brewfile'" \
-    "Install packages from Brewfile (this may take a while)"
 }
 
 # ---------------------------------------------------------------------------
@@ -481,14 +677,14 @@ main() {
   parse_args "$@"
   preflight
 
-  install_xcode_cli_tools
+  install_build_tools
   install_rosetta
-  install_homebrew
+  install_packages_minimal
   clone_dotfiles
   run_setup_sh
   install_asdf_languages
   install_gems_and_npm
-  run_brew_bundle
+  install_packages_full
   setup_zsh
   show_summary
 }
