@@ -123,3 +123,9 @@ fi
 # https://github.com/ajeetdsouza/zoxide
 export _ZO_DOCTOR=0  # Disable zoxide doctor warnings
 eval "$(zoxide init zsh)"
+
+# Initialize Atuin for shell history
+# https://github.com/atuinsh/atuin
+if command -v atuin >/dev/null 2>&1; then
+  eval "$(atuin init zsh)"
+fi

@@ -14,6 +14,7 @@ brew "readline"
 # brew "ansible"                  # disabled — not using for AI infra
 # brew "asciidoctor"              # not needed — AsciiDoc converter
 brew "asdf"
+brew "atuin"
 brew "awscli"
 brew "bash"
 brew "bash-completion"
