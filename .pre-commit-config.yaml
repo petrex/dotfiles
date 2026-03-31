@@ -33,9 +33,9 @@ repos:
       # Critical scripts functionality test
       - id: critical-scripts-test
         name: Critical Scripts Test
-        entry: bash -c './bin/.local/bin/run-tests --fast shell-syntax | grep -q "All tests passed" && echo "✓ run-tests working correctly"'
+        entry: bash -c './scripts/run-tests --fast shell-syntax | grep -q "All tests passed" && echo "✓ run-tests working correctly"'
         language: system
-        files: ^bin/\.local/bin/run-tests$
+        files: ^scripts/run-tests$
         pass_filenames: false
 
       # Markdown linting - disabled for commit speed
