@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+#
+# AI-powered error fix suggester
+# Pipes error output to claude CLI for fix suggestions
+#
+# Usage: failed_command 2>&1 | ai-fix
+#        ai-fix < error.log
+#
+# Prerequisites: claude CLI (npm i -g @anthropic-ai/claude-code)
+
+set -euo pipefail
+
+if ! command -v claude >/dev/null 2>&1; then
+	echo "Error: claude CLI not installed." >&2
+	echo "Install: npm i -g @anthropic-ai/claude-code" >&2
+	exit 1
+fi
+
+if [[ -t 0 ]]; then
+	echo "Usage: failed_command 2>&1 | ai-fix" >&2
+	echo "       ai-fix < error.log" >&2
+	exit 1
+fi
+
+input=$(cat)
+
+if [[ -z "${input}" ]]; then
+	echo "Error: No input received." >&2
+	exit 1
+fi
+
+prompt="This command produced an error. Suggest a fix. Be specific: show the exact command to run or code to change. Keep it short.
+
+Error output:
+${input}"
+
+echo "${prompt}" | claude --print
