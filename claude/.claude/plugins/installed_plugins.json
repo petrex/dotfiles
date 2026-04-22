@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "plugins": {
+    "document-skills@anthropic-agent-skills": [
+      {
+        "scope": "project",
+        "projectPath": "/Users/pyeh",
+        "installPath": "/Users/pyeh/.claude/plugins/cache/anthropic-agent-skills/document-skills/unknown",
+        "version": "unknown",
+        "installedAt": "2025-10-24T04:31:24.955Z",
+        "lastUpdated": "2025-12-11T05:47:20.559Z",
+        "gitCommitSha": "c74d647e56e6daa12029b6acb11a821348ad044b"
+      }
+    ],
+    "example-skills@anthropic-agent-skills": [
+      {
+        "scope": "project",
+        "projectPath": "/Users/pyeh",
+        "installPath": "/Users/pyeh/.claude/plugins/cache/anthropic-agent-skills/example-skills/unknown",
+        "version": "unknown",
+        "installedAt": "2025-10-24T04:31:24.955Z",
+        "lastUpdated": "2025-12-11T05:47:20.559Z",
+        "gitCommitSha": "c74d647e56e6daa12029b6acb11a821348ad044b"
+      }
+    ],
+    "everything-claude-code@everything-claude-code": [
+      {
+        "scope": "user",
+        "installPath": "/Users/pyeh/.claude/plugins/cache/everything-claude-code/everything-claude-code/1.4.1",
+        "version": "1.4.1",
+        "installedAt": "2026-02-25T06:30:10.742Z",
+        "lastUpdated": "2026-02-25T06:30:10.742Z",
+        "gitCommitSha": "3d63fd33b9e3343bbc466a21e5df97032cc43ec5"
+      }
+    ],
+    "andrej-karpathy-skills@karpathy-skills": [
+      {
+        "scope": "user",
+        "installPath": "/Users/pyeh/.claude/plugins/cache/karpathy-skills/andrej-karpathy-skills/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-17T22:24:45.723Z",
+        "lastUpdated": "2026-04-17T22:24:45.723Z",
+        "gitCommitSha": "c9a44ae835fa2f5765a697216692705761a53f40"
+      }
+    ],
+    "last30days@last30days-skill": [
+      {
+        "scope": "user",
+        "installPath": "/Users/pyeh/.claude/plugins/cache/last30days-skill/last30days/3.0.5",
+        "version": "3.0.5",
+        "installedAt": "2026-04-17T22:32:13.118Z",
+        "lastUpdated": "2026-04-17T22:32:13.118Z",
+        "gitCommitSha": "371f62a403d075550e9d5ce3035f1314053ea109"
+      }
+    ]
+  }
+}

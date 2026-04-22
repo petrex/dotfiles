@@ -23,16 +23,43 @@ scratchpads/
 *.rej
 
 # Claude Code runtime files (machine-specific, not config)
+claude/.claude/backups/
+claude/.claude/cache/
 claude/.claude/debug/
 claude/.claude/file-history/
 claude/.claude/history.jsonl
-claude/.claude/plugins/
+claude/.claude/mcp-needs-auth-cache.json
+claude/.claude/paste-cache/
+claude/.claude/plans/
 claude/.claude/projects/
+claude/.claude/session-env/
+claude/.claude/sessions/
 claude/.claude/settings.local.json
 claude/.claude/shell-snapshots/
 claude/.claude/stats-cache.json
 claude/.claude/statsig/
+claude/.claude/tasks/
+claude/.claude/teams/
+claude/.claude/telemetry/
 claude/.claude/todos/
+
+# Claude plugins: keep manifests, ignore downloaded plugin bodies
+claude/.claude/plugins/*
+!claude/.claude/plugins/installed_plugins.json
+!claude/.claude/plugins/known_marketplaces.json
+
+# Claude skills: ignore externally-managed skills, keep only user-authored
+# To add a personal skill, whitelist it explicitly (see commands/ example below).
+claude/.claude/skills/*
+!claude/.claude/skills/commands/
+!claude/.claude/skills/commands/**
+
+# Never vendor skill release artifacts, CI metadata, or nested repos
+claude/.claude/skills/**/*.zip
+claude/.claude/skills/**/*.tar.gz
+claude/.claude/skills/**/.github/
+claude/.claude/skills/**/.git/
+claude/.claude/skills/**/node_modules/
 
 # Backup files
 *.bak

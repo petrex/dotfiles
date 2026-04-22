@@ -1,0 +1,42 @@
+{
+  "anthropic-agent-skills": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/skills"
+    },
+    "installLocation": "/Users/pyeh/.claude/plugins/marketplaces/anthropic-agent-skills",
+    "lastUpdated": "2025-10-24T05:13:01.966Z"
+  },
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "/Users/pyeh/.claude/plugins/marketplaces/claude-plugins-official",
+    "lastUpdated": "2026-04-17T22:38:39.402Z"
+  },
+  "everything-claude-code": {
+    "source": {
+      "source": "github",
+      "repo": "affaan-m/everything-claude-code"
+    },
+    "installLocation": "/Users/pyeh/.claude/plugins/marketplaces/everything-claude-code",
+    "lastUpdated": "2026-02-25T06:29:42.151Z"
+  },
+  "karpathy-skills": {
+    "source": {
+      "source": "github",
+      "repo": "forrestchang/andrej-karpathy-skills"
+    },
+    "installLocation": "/Users/pyeh/.claude/plugins/marketplaces/karpathy-skills",
+    "lastUpdated": "2026-04-17T22:24:13.410Z"
+  },
+  "last30days-skill": {
+    "source": {
+      "source": "github",
+      "repo": "mvanhorn/last30days-skill"
+    },
+    "installLocation": "/Users/pyeh/.claude/plugins/marketplaces/last30days-skill",
+    "lastUpdated": "2026-04-17T22:27:22.165Z"
+  }
+}

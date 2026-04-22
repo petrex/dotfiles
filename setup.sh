@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e # Terminate script if anything exits with a non-zero value
+set -euo pipefail # Fail on error, undefined vars, and broken pipes
 
 ################################################################################
 # setup.sh
@@ -225,7 +225,7 @@ setup_hostname() {
 }
 
 setup_directories() {
-  if [ -z "${DOTFILES}" ]; then
+  if [ -z "${DOTFILES:-}" ]; then
     export DOTFILES="${HOME}/dotfiles"
   fi
 
@@ -236,7 +236,7 @@ setup_directories() {
     exit 1
   fi
 
-  if [ -z "${XDG_CONFIG_HOME}" ]; then
+  if [ -z "${XDG_CONFIG_HOME:-}" ]; then
     dotfiles_echo "Setting up ~/.config directory..."
     if [ ! -d "${HOME}/.config" ]; then
       if [[ "${DRY_RUN}" == "true" ]]; then
