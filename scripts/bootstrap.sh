@@ -652,11 +652,131 @@ setup_zsh() {
 }
 
 # ---------------------------------------------------------------------------
-# Phase 10: Summary
+# Phase 10: gstack (Garry Tan's Claude Code skill suite)
+# ---------------------------------------------------------------------------
+
+install_gstack() {
+  bootstrap_echo "Phase 10: gstack"
+
+  local gstack_repo="https://github.com/garrytan/gstack.git"
+  local gstack_dir="${HOME}/.claude/skills/gstack"
+
+  # gstack requires bun v1.0+ — install if missing
+  if command -v bun &>/dev/null || [[ -x "${HOME}/.bun/bin/bun" ]]; then
+    bootstrap_info "bun already installed"
+  else
+    case "${OS}" in
+      macos)
+        if [[ "${DRY_RUN}" == "true" ]]; then
+          bootstrap_info "[DRY RUN] Would install bun via Homebrew"
+        else
+          bootstrap_info "Installing bun (gstack runtime)..."
+          brew install bun 2>/dev/null || bootstrap_warn "brew install bun failed"
+        fi
+        ;;
+      linux)
+        if [[ "${DRY_RUN}" == "true" ]]; then
+          bootstrap_info "[DRY RUN] Would install bun via https://bun.sh/install"
+        else
+          bootstrap_info "Installing bun (gstack runtime)..."
+          curl -fsSL https://bun.sh/install | bash || bootstrap_warn "bun install script failed"
+        fi
+        ;;
+    esac
+  fi
+
+  # Make ~/.bun/bin available for gstack ./setup if bun was just installed there
+  if [[ -d "${HOME}/.bun/bin" ]]; then
+    export PATH="${HOME}/.bun/bin:${PATH}"
+  fi
+
+  # Ensure parent directory exists
+  if [[ "${DRY_RUN}" == "false" ]]; then
+    mkdir -p "${HOME}/.claude/skills"
+  fi
+
+  # Clone or update gstack repo
+  if [[ -d "${gstack_dir}/.git" ]]; then
+    bootstrap_info "gstack already cloned at %s" "${gstack_dir}"
+    if [[ "${DRY_RUN}" == "true" ]]; then
+      bootstrap_info "[DRY RUN] Would update gstack via git pull"
+    else
+      git -C "${gstack_dir}" pull --ff-only || bootstrap_warn "Could not update gstack; continuing"
+    fi
+  else
+    run_cmd "git clone --single-branch --depth 1 '${gstack_repo}' '${gstack_dir}'" \
+      "Clone gstack repo"
+  fi
+
+  # Run gstack's installer
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    bootstrap_info "[DRY RUN] Would run gstack ./setup"
+  elif [[ -x "${gstack_dir}/setup" ]]; then
+    bootstrap_info "Running gstack setup..."
+    (cd "${gstack_dir}" && ./setup) || bootstrap_warn "gstack setup encountered errors"
+  else
+    bootstrap_warn "gstack setup script not found at %s/setup" "${gstack_dir}"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Phase 11: Claude Code plugins (marketplaces + skill bundles)
+# ---------------------------------------------------------------------------
+#
+# Each entry is "marketplace-name:github-owner/repo:plugin@marketplace".
+# Mirrors the user-scope plugins recorded in
+# ~/.claude/plugins/installed_plugins.json and known_marketplaces.json.
+
+CLAUDE_PLUGIN_ENTRIES=(
+  "everything-claude-code:affaan-m/everything-claude-code:everything-claude-code@everything-claude-code"
+  "karpathy-skills:forrestchang/andrej-karpathy-skills:andrej-karpathy-skills@karpathy-skills"
+  "last30days-skill:mvanhorn/last30days-skill:last30days@last30days-skill"
+)
+
+install_claude_plugins() {
+  bootstrap_echo "Phase 11: Claude Code plugins"
+
+  if ! command -v claude &>/dev/null; then
+    bootstrap_warn "claude CLI not found on PATH — skipping plugin installation"
+    bootstrap_warn "Install Claude Code first: https://docs.anthropic.com/en/docs/claude-code"
+    return
+  fi
+
+  local existing_markets=""
+  local existing_plugins=""
+  if [[ "${DRY_RUN}" == "false" ]]; then
+    existing_markets="$(claude plugin marketplace list 2>/dev/null || true)"
+    existing_plugins="$(claude plugin list 2>/dev/null || true)"
+  fi
+
+  for entry in "${CLAUDE_PLUGIN_ENTRIES[@]}"; do
+    local market_name="${entry%%:*}"
+    local rest="${entry#*:}"
+    local repo="${rest%%:*}"
+    local plugin_spec="${rest#*:}"
+
+    if grep -Fq "${market_name}" <<<"${existing_markets}"; then
+      bootstrap_info "Marketplace already registered: %s" "${market_name}"
+    else
+      run_cmd "claude plugin marketplace add '${repo}'" \
+        "Register Claude Code marketplace ${market_name}"
+    fi
+
+    if grep -Fq "${plugin_spec}" <<<"${existing_plugins}"; then
+      bootstrap_info "Plugin already installed: %s" "${plugin_spec}"
+    else
+      run_cmd "claude plugin install '${plugin_spec}' --scope user" \
+        "Install Claude Code plugin ${plugin_spec}"
+    fi
+  done
+}
+
+# ---------------------------------------------------------------------------
+# Phase 12: Summary
 # ---------------------------------------------------------------------------
 
 show_summary() {
-  bootstrap_echo "Phase 10: Bootstrap complete!"
+  bootstrap_echo "Phase 12: Bootstrap complete!"
 
   cat <<'EOF'
 
@@ -686,6 +806,8 @@ main() {
   install_gems_and_npm
   install_packages_full
   setup_zsh
+  install_gstack
+  install_claude_plugins
   show_summary
 }
 
