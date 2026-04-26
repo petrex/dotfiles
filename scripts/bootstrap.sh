@@ -671,7 +671,7 @@ install_gstack() {
           bootstrap_info "[DRY RUN] Would install bun via Homebrew"
         else
           bootstrap_info "Installing bun (gstack runtime)..."
-          brew install bun 2>/dev/null || bootstrap_warn "brew install bun failed"
+          brew install bun || bootstrap_warn "brew install bun failed"
         fi
         ;;
       linux)
