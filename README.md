@@ -16,32 +16,38 @@ Personal development environment for macOS and Linux, managed with [GNU Stow][gn
 
 ## Quick Start
 
-```bash
-# Clone
-git clone https://github.com/petrex/dotfiles.git ~/dotfiles
+### Fresh Machine (recommended)
 
-# Preview what setup will do
-~/dotfiles/setup.sh --dry-run
-
-# Run setup
-~/dotfiles/setup.sh
-```
-
-### Fresh Machine Bootstrap
+One command — works on macOS, Ubuntu/Debian, and CachyOS/Arch:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh)
 ```
 
-The bootstrap script handles everything: Xcode CLI tools, Homebrew, dotfiles clone, stow symlinks, asdf + language runtimes, Brewfile install, and shell configuration. Safe to run multiple times (idempotent).
+`scripts/bootstrap.sh` handles everything: prerequisites (Xcode CLI tools / `base-devel` / build-essential), Homebrew or pacman/apt, repo clone into `~/dotfiles`, stow symlinks, asdf + language runtimes, package install (Brewfile / `pacman.txt` / `apt.txt`), and zsh as the default shell. Safe to re-run (idempotent).
 
 ```bash
-# Preview without changes
-./scripts/bootstrap.sh --dry-run
+# Preview without making changes
+bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh) --dry-run
 
-# Skip the lengthy Brewfile install
+# Skip the lengthy Brewfile install (macOS)
 ./scripts/bootstrap.sh --skip-brew-bundle
+
+# All flags
+./scripts/bootstrap.sh --help
 ```
+
+### Already have the repo
+
+If you've already cloned the repo and just want to (re)create symlinks:
+
+```bash
+git clone https://github.com/petrex/dotfiles.git ~/dotfiles   # if needed
+~/dotfiles/setup.sh --dry-run                                  # preview
+~/dotfiles/setup.sh                                            # apply
+```
+
+`setup.sh` only handles stow symlinks; for full bootstrap (packages, runtimes, shell), use `scripts/bootstrap.sh`.
 
 ### Post-Install
 
