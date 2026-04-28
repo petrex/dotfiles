@@ -40,7 +40,9 @@ The following abbreviations are available for direct command-line usage:
 
 ## Installation
 
-The fzf-git.sh script is automatically loaded when you start an interactive shell session. The script is located at `bin/fzf-git.sh` and is sourced by both Fish and Zsh configurations.
+The fzf-git.sh script is automatically loaded when you start an interactive shell session. The script is located at `bin/fzf-git.sh` and is sourced by Bash and Zsh.
+
+> **Note**: Upstream fzf-git.sh is bash/zsh-only — it uses bash syntax (`[[ ]]`, `case ... esac`, `eval ... bindkey ...`) that fish cannot parse, so it is **not** sourced from `config.fish`. See the Fish Shell section under [Integration Details](#fish-shell) for the fish workflow.
 
 ## Dependencies
 
@@ -89,16 +91,16 @@ The script respects the following environment variables:
 
 ## Integration Details
 
-### Fish Shell
+### Bash Shell
 
-The script is loaded in `fish/.config/fish/config.fish` during interactive sessions:
+The script is loaded in `bash/.bashrc`:
 
-```fish
+```bash
 # https://github.com/junegunn/fzf-git.sh
 # Load fzf-git.sh for enhanced git operations with fuzzy finding
-if test -f $DOTFILES/bin/fzf-git.sh
-    source $DOTFILES/bin/fzf-git.sh
-end
+if [[ -f "$DOTFILES/bin/fzf-git.sh" ]]; then
+  source "$DOTFILES/bin/fzf-git.sh"
+fi
 ```
 
 ### Zsh Shell
@@ -112,6 +114,10 @@ if [[ -f "$DOTFILES/bin/fzf-git.sh" ]]; then
   source "$DOTFILES/bin/fzf-git.sh"
 fi
 ```
+
+### Fish Shell
+
+Fish does **not** source `fzf-git.sh` directly because the script is written in bash syntax (`[[ ]]`, `case ... esac`, `eval ... bindkey ...`). Sourcing it from `config.fish` raised a startup error and was removed. Fish users who want the same key bindings should install a fish-native fzf integration such as [PatrickF1/fzf.fish](https://github.com/PatrickF1/fzf.fish).
 
 ### Abbreviations
 

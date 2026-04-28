@@ -25,11 +25,8 @@ if status is-interactive
     # https://github.com/ajeetdsouza/zoxide
     zoxide init fish | source
 
-    # https://github.com/junegunn/fzf-git.sh
-    # Load fzf-git.sh for enhanced git operations with fuzzy finding
-    if test -f $DOTFILES/bin/fzf-git.sh
-        source $DOTFILES/bin/fzf-git.sh
-    end
+    # https://github.com/junegunn/fzf-git.sh is bash/zsh-only (uses [[ ]] and
+    # case/esac); it is sourced from .bashrc and .zshrc, not from fish.
 
     # fzf integration
     # https://github.com/junegunn/fzf#using-homebrew-or-linuxbrew
