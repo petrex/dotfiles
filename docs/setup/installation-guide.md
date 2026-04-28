@@ -27,13 +27,13 @@ The bootstrap script handles everything automatically — Xcode CLI tools,
 Homebrew, dotfiles, language runtimes, and shell setup:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/pyeh/dotfiles/master/scripts/bootstrap.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh)
 ```
 
 Preview what the script will do first:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/pyeh/dotfiles/master/scripts/bootstrap.sh) --dry-run
+bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh) --dry-run
 ```
 
 The bootstrap script is idempotent and can be run multiple times safely. See the

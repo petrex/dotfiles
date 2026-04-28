@@ -10,7 +10,7 @@ set -e
 # setup.sh, installs language runtimes, and configures the default shell.
 #
 # Usage:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/pyeh/dotfiles/master/scripts/bootstrap.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh)
 #
 # Or after cloning:
 #   ./scripts/bootstrap.sh [OPTIONS]
@@ -30,7 +30,7 @@ set -e
 # Phase 0: Preflight
 # ---------------------------------------------------------------------------
 
-DOTFILES_REPO="https://github.com/pyeh/dotfiles.git"
+DOTFILES_REPO="https://github.com/petrex/dotfiles.git"
 DOTFILES_DIR="${HOME}/dotfiles"
 DOTFILES_BRANCH="master"
 
@@ -106,7 +106,7 @@ Options:
   --help               Show this help message
 
 Examples:
-  bash <(curl -fsSL https://raw.githubusercontent.com/pyeh/dotfiles/master/scripts/bootstrap.sh)
+  bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh)
   $0                      # Full bootstrap
   $0 --dry-run            # Preview all phases
   $0 --skip-brew-bundle   # Skip lengthy Brewfile install (macOS)
