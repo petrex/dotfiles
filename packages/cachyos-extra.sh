@@ -27,13 +27,20 @@ command_exists() {
 
 install_zsh_abbr() {
   local abbr_dir="${HOME}/.local/share/zsh-abbr"
+  # zsh-abbr depends on the zsh-job-queue submodule; without it the plugin
+  # prints "There was a problem finishing installing dependencies" on load.
   if [[ -d "${abbr_dir}" ]]; then
-    cachyos_extra_info "zsh-abbr already installed"
+    if [[ ! -f "${abbr_dir}/zsh-job-queue/zsh-job-queue.zsh" ]]; then
+      cachyos_extra_info "zsh-abbr present but missing submodules — initializing..."
+      git -C "${abbr_dir}" submodule update --init --recursive
+    else
+      cachyos_extra_info "zsh-abbr already installed"
+    fi
     return
   fi
 
   cachyos_extra_info "Installing zsh-abbr via git clone..."
-  git clone https://github.com/olets/zsh-abbr.git "${abbr_dir}"
+  git clone --recurse-submodules https://github.com/olets/zsh-abbr.git "${abbr_dir}"
 }
 
 # ---------------------------------------------------------------------------
