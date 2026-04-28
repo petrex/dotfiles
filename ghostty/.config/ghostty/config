@@ -6,6 +6,10 @@
 
 theme = TokyoNight Moon
 
+# Default shell
+command = zsh
+shell-integration = zsh
+
 # Font settings
 # List available fonts: ghostty +list-fonts
 # font-family = Cascadia Code
