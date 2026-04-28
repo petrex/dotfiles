@@ -40,6 +40,5 @@ tree
 ctags
 wget
 yq
-zlib
 zoxide
 zsh
