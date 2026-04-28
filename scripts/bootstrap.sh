@@ -455,12 +455,10 @@ install_asdf_languages() {
 
   add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
   add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
-  add_or_update_asdf_plugin "python" "https://github.com/asdf-community/asdf-python.git"
   add_or_update_asdf_plugin "lua" "https://github.com/Stratus3D/asdf-lua.git"
 
   install_asdf_language "ruby"
   install_asdf_language "nodejs"
-  install_asdf_language "python"
 
   # luarocks 3.13+ has rockspec syntax incompatible with Lua 5.1's parser
   ASDF_LUA_LUAROCKS_VERSION="3.11.1" install_asdf_language "lua"
