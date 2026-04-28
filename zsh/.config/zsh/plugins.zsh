@@ -20,7 +20,17 @@ fi
 fpath=(${ASDF_DATA_DIR:-$HOME/.asdf}/completions $fpath)
 
 # https://zsh-abbr.olets.dev
-. $HOMEBREW_PREFIX/share/zsh-abbr/zsh-abbr.zsh
+# macOS: installed via Homebrew under $HOMEBREW_PREFIX/share/zsh-abbr
+# Linux: cloned to $XDG_DATA_HOME/zsh-abbr by scripts/bootstrap.sh
+for _zsh_abbr_path in \
+  "${XDG_DATA_HOME:-$HOME/.local/share}/zsh-abbr/zsh-abbr.zsh" \
+  "${HOMEBREW_PREFIX}/share/zsh-abbr/zsh-abbr.zsh"; do
+  if [ -f "$_zsh_abbr_path" ]; then
+    . "$_zsh_abbr_path"
+    break
+  fi
+done
+unset _zsh_abbr_path
 
 # https://github.com/junegunn/fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
