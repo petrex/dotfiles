@@ -238,7 +238,7 @@ mv ~/.config/nvim ~/.config/nvim.backup 2>/dev/null
 # 1. Check corporate policies first!
 # 2. Create separate user account if needed
 # 3. Clone personal dotfiles to separate location
-git clone https://github.com/joshukraine/dotfiles.git ~/personal-dotfiles
+git clone https://github.com/petrex/dotfiles.git ~/personal-dotfiles
 
 # 4. Install to isolated environment
 DOTFILES="$HOME/personal-dotfiles" ./setup.sh
@@ -468,6 +468,6 @@ If you encounter issues during migration:
 2. **Use rollback procedures** to restore working state
 3. **Check troubleshooting guide** for common issues
 4. **Test changes incrementally** rather than all at once
-5. **Ask for help** on the [GitHub repository](https://github.com/joshukraine/dotfiles/issues)
+5. **Ask for help** on the [GitHub repository](https://github.com/petrex/dotfiles/issues)
 
 Remember: Migration is a process, not a one-time event. Take your time and test thoroughly at each step!

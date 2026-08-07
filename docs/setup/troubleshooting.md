@@ -15,9 +15,9 @@ This guide covers common issues you might encounter when setting up or maintaini
 
 ## 🔐 Permission and Access Issues
 
-### Setup Script Fails with Permission Denied
+### System Setup Fails with Permission Denied
 
-**Problem**: Script fails with "Permission denied" errors
+**Problem**: The optional system phase cannot update a machine-wide setting.
 
 ```text
 [ERROR] Failed to execute: sudo scutil --set HostName
@@ -26,23 +26,25 @@ Permission denied
 
 **Solutions**:
 
-1. **Ensure you have sudo access**:
+1. **Preview the privileged changes**:
 
    ```bash
-   sudo -v  # Test sudo access
+   ./scripts/setup-system.sh --dry-run
    ```
 
-2. **Don't run the script as root**:
+2. **Run the system phase as your normal user**:
 
    ```bash
    # ❌ Wrong - don't do this
-   sudo ./setup.sh
+   sudo ./scripts/setup-system.sh
 
-   # ✅ Correct - run as your user
-   ./setup.sh
+   # ✅ Correct - the script elevates individual commands when required
+   ./scripts/setup-system.sh
    ```
 
-3. **Check your user account type**:
+   The link phase, `./setup.sh`, never needs administrator access.
+
+3. **Check your user account type if system setup still fails**:
 
    ```bash
    # Verify you're in the admin group
@@ -547,7 +549,7 @@ ls -la ~/.zshrc
 2. **Install TPM if missing**:
 
    ```bash
-   git clone https://github.com/tmux-plugins/tpm ~/.config/tmux/plugins/tpm
+   ./scripts/setup-user.sh
    ```
 
 3. **Install plugins manually**:
@@ -627,7 +629,7 @@ If your issue isn't covered here:
 
 1. **Check the setup script output carefully** - error messages often point to the exact problem
 2. **Use dry-run mode** to understand what the script is trying to do: `./setup.sh --dry-run`
-3. **Search existing issues** on the [GitHub repository](https://github.com/joshukraine/dotfiles/issues)
+3. **Search existing issues** on the [GitHub repository](https://github.com/petrex/dotfiles/issues)
 4. **Enable debug mode** for more verbose output: `DEBUG=true ./setup.sh --dry-run`
 5. **File a new issue** with:
    - Your operating system and version
