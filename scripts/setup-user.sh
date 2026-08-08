@@ -80,9 +80,11 @@ setup_shell_integration() {
     info "[DRY RUN] Would set Fish universal paths: ${paths[*]}"
   else
     info "Setting Fish universal paths"
+    # Do not add --no-config: it isolates the universal variable store, so
+    # `set -U` would not persist to the user's real fish_variables file.
     # Fish expands $argv; Bash must pass the expression through unchanged.
     # shellcheck disable=SC2016
-    command fish --no-config -c 'set -U fish_user_paths $argv' "${paths[@]}"
+    command fish -c 'set -U fish_user_paths $argv' "${paths[@]}"
   fi
 }
 
