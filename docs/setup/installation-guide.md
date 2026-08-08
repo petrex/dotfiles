@@ -70,7 +70,8 @@ brew install stow
   - Git (usually included with Xcode Command Line Tools)
   - GNU Stow (for symlink management)
   - Homebrew (package manager)
-- **Permissions**: sudo access (required for hostname setup)
+- **Permissions**: No administrator access is needed to link dotfiles. Sudo is
+  required only for the optional system setup phase.
 - **Disk Space**: ~500MB for dotfiles and basic tools
 
 ## 🚀 Step-by-Step Installation
@@ -79,7 +80,7 @@ brew install stow
 
 ```bash
 # Clone to the standard location
-git clone https://github.com/joshukraine/dotfiles.git ~/dotfiles
+git clone https://github.com/petrex/dotfiles.git ~/dotfiles
 
 # Navigate to the dotfiles directory
 cd ~/dotfiles
@@ -144,21 +145,33 @@ If you see files that match what the dotfiles will install, the setup script wil
 
 ### Step 5: Run the Installation
 
-When you're ready, run the full installation:
+When you're ready, create the dotfile links:
 
 ```bash
 ./setup.sh
 ```
 
-The script will:
+The link script will:
 
-1. **Check prerequisites** - Verify macOS, Stow, and sudo access
-2. **Set hostname** - Configure system hostname settings
-3. **Create directories** - Set up `~/.config` and `~/.local/bin`
-4. **Handle conflicts** - Back up existing files with timestamps
-5. **Create symlinks** - Use Stow to link all configuration files
-6. **Configure shells** - Set up Fish user paths if Fish is installed
-7. **Install Tmux components** - Set up terminal info and plugin manager
+1. **Check prerequisites** - Verify GNU Stow is available
+2. **Create directories** - Set up `~/.config` and `~/.local/bin`
+3. **Handle conflicts** - Back up existing files with timestamps
+4. **Create symlinks** - Use Stow to link all configuration files
+
+It does not use sudo, change system settings, or access the network. Configure
+the remaining optional state separately:
+
+```bash
+# Fish paths, user terminfo, and Tmux Plugin Manager
+./scripts/setup-user.sh --dry-run
+./scripts/setup-user.sh
+
+# macOS hostname and SMB name; may request sudo
+./scripts/setup-system.sh --dry-run
+./scripts/setup-system.sh
+```
+
+See [Setup Safety Boundaries](security-boundaries.md) for the complete contract.
 
 ### Step 6: Handle Any Conflicts
 
@@ -276,6 +289,9 @@ touch ~/dotfiles/local/config.fish.local
 If you use Tmux:
 
 ```bash
+# Install user terminfo and Tmux Plugin Manager if not already configured
+./scripts/setup-user.sh
+
 # Launch Tmux
 tmux
 
@@ -298,7 +314,9 @@ nvim
 ### Permission Errors
 
 **Problem**: Script fails with permission errors
-**Solution**: Ensure you have sudo access and run the script from your user account, not as root
+**Solution**: Linking does not require sudo. For optional system settings, run
+`./scripts/setup-system.sh` from your user account and let it elevate only the
+commands that need administrator access.
 
 ### Homebrew Path Issues
 
@@ -357,7 +375,7 @@ If you encounter issues not covered here:
 1. **Re-run with dry-run**: `./setup.sh --dry-run` to diagnose
 2. **Check the logs**: Look for error messages in the terminal output
 3. **Review troubleshooting guide**: See [troubleshooting.md](troubleshooting.md)
-4. **File an issue**: Report problems on [GitHub](https://github.com/joshukraine/dotfiles/issues)
+4. **File an issue**: Report problems on [GitHub](https://github.com/petrex/dotfiles/issues)
 
 ## 🎉 Success
 

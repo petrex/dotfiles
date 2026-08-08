@@ -24,7 +24,7 @@ One command — works on macOS, Ubuntu/Debian, and CachyOS/Arch:
 bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh)
 ```
 
-`scripts/bootstrap.sh` handles everything: prerequisites (Xcode CLI tools / `base-devel` / build-essential), Homebrew or pacman/apt, repo clone into `~/dotfiles`, stow symlinks, asdf + language runtimes, package install (Brewfile / `pacman.txt` / `apt.txt`), and zsh as the default shell. Safe to re-run (idempotent).
+`scripts/bootstrap.sh` handles everything: prerequisites (Xcode CLI tools / `base-devel` / build-essential), Homebrew or pacman/apt, repo clone into `~/dotfiles`, link/user/system setup phases, asdf + language runtimes, package install (Brewfile / `pacman.txt` / `apt.txt`), and zsh as the default shell. Safe to re-run (idempotent).
 
 ```bash
 # Preview without making changes
@@ -39,15 +39,24 @@ bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scrip
 
 ### Already have the repo
 
-If you've already cloned the repo and just want to (re)create symlinks:
+If you've already cloned the repo, run only the phases you need:
 
 ```bash
 git clone https://github.com/petrex/dotfiles.git ~/dotfiles   # if needed
-~/dotfiles/setup.sh --dry-run                                  # preview
-~/dotfiles/setup.sh                                            # apply
+~/dotfiles/setup.sh --dry-run                                  # preview links
+~/dotfiles/setup.sh                                            # create links; no sudo/network
+~/dotfiles/scripts/setup-user.sh                               # optional user state/plugins
+~/dotfiles/scripts/setup-system.sh --dry-run                   # preview system settings
+~/dotfiles/scripts/setup-system.sh                             # optional; may request sudo
 ```
 
-`setup.sh` only handles stow symlinks; for full bootstrap (packages, runtimes, shell), use `scripts/bootstrap.sh`.
+The phases have explicit safety boundaries:
+
+- `setup.sh` creates directories, backs up conflicts, and runs Stow. It never uses sudo, changes system settings, or accesses the network.
+- `scripts/setup-user.sh` configures Fish paths, user terminfo, and Tmux Plugin Manager. It never uses sudo, but it may clone TPM from GitHub.
+- `scripts/setup-system.sh` applies optional machine-wide settings. It prints the planned changes before requesting administrator access and must not be run as root.
+
+For full bootstrap (packages, runtimes, shell, and all three setup phases), use `scripts/bootstrap.sh`. See the [setup safety boundaries](docs/setup/security-boundaries.md) for details.
 
 ### Post-Install
 
@@ -60,7 +69,9 @@ git clone https://github.com/petrex/dotfiles.git ~/dotfiles   # if needed
 
 ```bash
 make help        # Show all available targets
-make setup       # Run full setup (install deps, create symlinks)
+make setup       # Create symlinks (no sudo or network)
+make setup-user  # Configure user-owned state and plugins
+make setup-system # Apply optional system settings (may use sudo)
 make audit       # Audit abbreviations against shell history (requires atuin)
 make lint        # Lint shell scripts with shellcheck + shfmt
 make test        # Run the test suite
@@ -73,7 +84,7 @@ make validate    # Run configuration validators
 Three standalone bash scripts that use the `claude` CLI. They work in any shell and gracefully fall back when Claude isn't installed.
 
 | Command | Usage | What it does |
-|---------|-------|-------------|
+| --- | --- | --- |
 | `ai-commit` | `ai-commit` | Generates a conventional commit message from staged changes |
 | `ai-explain` | `some_command 2>&1 \| ai-explain` | Explains command output in plain English |
 | `ai-fix` | `failed_command 2>&1 \| ai-fix` | Suggests a fix for error output |
@@ -114,7 +125,7 @@ make audit                              # Report only
 ## Repository Structure
 
 | Directory | Purpose |
-|-----------|---------|
+| --- | --- |
 | `asdf/` | asdf version manager config |
 | `atuin/` | Atuin shell history config |
 | `bin/` | Custom scripts (`ai-commit`, `ai-explain`, `ai-fix`, git wrappers, tmux helpers) |

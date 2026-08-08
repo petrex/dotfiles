@@ -4,35 +4,42 @@ Welcome to the comprehensive setup script documentation for the dotfiles reposit
 
 ## 📋 Quick Reference
 
-| Scenario                | Guide                                       | Description                                      |
-| ----------------------- | ------------------------------------------- | ------------------------------------------------ |
-| **New Installation**    | [Installation Guide](installation-guide.md) | Complete walkthrough for fresh macOS setup       |
-| **Command Examples**    | [Usage Examples](usage-examples.md)         | All setup script options with practical examples |
-| **Issues & Fixes**      | [Troubleshooting](troubleshooting.md)       | Common problems and their solutions              |
-| **Personal Setup**      | [Customization](customization.md)           | Local configuration and personal overrides       |
-| **From Other Dotfiles** | [Migration Guide](migration.md)             | Moving from other dotfiles repositories          |
+| Scenario | Guide | Description |
+| --- | --- | --- |
+| **New Installation** | [Installation Guide](installation-guide.md) | Complete walkthrough for a fresh machine |
+| **Safety Boundaries** | [Safety Boundaries](security-boundaries.md) | Link, user, and privileged system phases |
+| **Command Examples** | [Usage Examples](usage-examples.md) | All setup script options with practical examples |
+| **Issues & Fixes** | [Troubleshooting](troubleshooting.md) | Common problems and their solutions |
+| **Personal Setup** | [Customization](customization.md) | Local configuration and personal overrides |
+| **From Other Dotfiles** | [Migration Guide](migration.md) | Moving from other dotfiles repositories |
 
 ## 🚀 Quick Start
 
 For first-time users who want to get started immediately:
 
-1. **Prerequisites**: Ensure you have macOS with [Homebrew](https://brew.sh) and [GNU Stow](https://www.gnu.org/software/stow/) installed
-2. **Clone**: `git clone https://github.com/joshukraine/dotfiles.git ~/dotfiles`
+1. **Prerequisites**: Install Git and [GNU Stow](https://www.gnu.org/software/stow/)
+2. **Clone**: `git clone https://github.com/petrex/dotfiles.git ~/dotfiles`
 3. **Preview**: `~/dotfiles/setup.sh --dry-run` (see what will happen)
-4. **Install**: `~/dotfiles/setup.sh` (run the actual setup)
+4. **Link**: `~/dotfiles/setup.sh` (no sudo or network access)
+5. **Optional user setup**: `~/dotfiles/scripts/setup-user.sh`
+6. **Optional system setup**: Preview with `~/dotfiles/scripts/setup-system.sh --dry-run`, then apply without `--dry-run`
 
 For detailed instructions, see the [Installation Guide](installation-guide.md).
 
 ## 🛠️ Setup Script Features
 
-Our `setup.sh` script provides a robust, idempotent installation experience:
+The setup is split by trust level. `setup.sh` provides a focused, idempotent linking experience:
 
 - **Safe to run multiple times** - Script detects existing configurations
 - **Dry-run capability** - Preview changes before applying them
 - **Automatic conflict resolution** - Backs up existing files with timestamps
 - **Comprehensive error handling** - Clear error messages and recovery guidance
-- **Platform detection** - Automatic Apple Silicon vs Intel Mac configuration
 - **Prerequisite checking** - Validates required tools before proceeding
+- **No privilege escalation** - Never invokes sudo or modifies system settings
+- **No network access** - Only manages local directories, backups, and symlinks
+
+User-owned state and machine-wide settings are handled by separate scripts. See
+the [Safety Boundaries](security-boundaries.md) guide.
 
 ## 📖 Documentation Structure
 
@@ -53,7 +60,7 @@ Our `setup.sh` script provides a robust, idempotent installation experience:
 ### Specialized Guides
 
 - **[Troubleshooting](troubleshooting.md)** - Solutions for common issues
-  - Permission and sudo problems
+  - Permission and Stow problems
   - Stow conflicts and symlink issues
   - Homebrew installation problems
   - Shell configuration conflicts
@@ -106,15 +113,16 @@ If you encounter issues not covered in these guides:
 1. **Check existing documentation** - Search through all setup guides
 2. **Review the script** - Read `setup.sh` directly for implementation details
 3. **Test with dry-run** - Use `--dry-run` to understand what will happen
-4. **File an issue** - Report problems on the [GitHub repository](https://github.com/joshukraine/dotfiles/issues)
+4. **File an issue** - Report problems on the [GitHub repository](https://github.com/petrex/dotfiles/issues)
 
 ## ⚡ TL;DR Commands
 
 ```bash
 # Quick installation for experienced users
-git clone https://github.com/joshukraine/dotfiles.git ~/dotfiles
+git clone https://github.com/petrex/dotfiles.git ~/dotfiles
 ~/dotfiles/setup.sh --dry-run  # Preview first!
-~/dotfiles/setup.sh            # Install
+~/dotfiles/setup.sh            # Create links
+~/dotfiles/scripts/setup-user.sh
 
 # Common maintenance commands
 ~/dotfiles/setup.sh --dry-run  # Check what would change
