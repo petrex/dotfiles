@@ -7,8 +7,7 @@ set -e
 #
 # Single bootstrap script to set up a fresh macOS, Ubuntu, or CachyOS/Arch
 # machine from zero. Installs prerequisites, clones the dotfiles repo, runs
-# link, user, and system setup phases; installs language runtimes; and
-# configures the default shell.
+# setup.sh, installs language runtimes, and configures the default shell.
 #
 # Usage:
 #   bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh)
@@ -93,8 +92,8 @@ show_help() {
 Usage: $0 [OPTIONS]
 
 Bootstrap a fresh macOS, Ubuntu, or CachyOS/Arch machine from zero.
-Installs prerequisites, clones dotfiles, runs the link/user/system setup phases,
-installs language runtimes, and configures the default shell.
+Installs prerequisites, clones dotfiles, runs setup.sh, installs language
+runtimes, and configures the default shell.
 
 Supported platforms:
   macOS (Apple Silicon + Intel) — uses Homebrew
@@ -354,41 +353,18 @@ clone_dotfiles() {
 }
 
 # ---------------------------------------------------------------------------
-# Phase 5: Link dotfiles
+# Phase 5: Run setup.sh
 # ---------------------------------------------------------------------------
 
-run_link_setup() {
-  bootstrap_echo "Phase 5: Link dotfiles"
+run_setup_sh() {
+  bootstrap_echo "Phase 5: Run setup.sh"
 
-  if [[ "${DRY_RUN}" == "true" ]] && [[ ! -d "${DOTFILES_DIR}" ]]; then
-    bootstrap_info "[DRY RUN] Would run link setup: %s/setup.sh --dry-run" "${DOTFILES_DIR}"
-    return
-  fi
-
-  local dry_run_args=()
+  local setup_cmd="bash '${DOTFILES_DIR}/setup.sh'"
   if [[ "${DRY_RUN}" == "true" ]]; then
-    dry_run_args+=(--dry-run)
+    setup_cmd="${setup_cmd} --dry-run"
   fi
 
-  bash "${DOTFILES_DIR}/setup.sh" "${dry_run_args[@]}"
-}
-
-run_user_and_system_setup() {
-  bootstrap_echo "Phase 8b: User and system setup"
-
-  if [[ "${DRY_RUN}" == "true" ]] && [[ ! -d "${DOTFILES_DIR}" ]]; then
-    bootstrap_info "[DRY RUN] Would run user setup: %s/scripts/setup-user.sh --dry-run" "${DOTFILES_DIR}"
-    bootstrap_info "[DRY RUN] Would run system setup: %s/scripts/setup-system.sh --dry-run" "${DOTFILES_DIR}"
-    return
-  fi
-
-  local dry_run_args=()
-  if [[ "${DRY_RUN}" == "true" ]]; then
-    dry_run_args+=(--dry-run)
-  fi
-
-  bash "${DOTFILES_DIR}/scripts/setup-user.sh" "${dry_run_args[@]}"
-  bash "${DOTFILES_DIR}/scripts/setup-system.sh" "${dry_run_args[@]}"
+  run_cmd "${setup_cmd}" "Run dotfiles setup (stow symlinks, hostname, directories, tmux)"
 }
 
 # ---------------------------------------------------------------------------
@@ -823,11 +799,10 @@ main() {
   install_rosetta
   install_packages_minimal
   clone_dotfiles
-  run_link_setup
+  run_setup_sh
   install_asdf_languages
   install_gems_and_npm
   install_packages_full
-  run_user_and_system_setup
   setup_zsh
   install_gstack
   install_claude_plugins

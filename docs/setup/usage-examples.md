@@ -64,23 +64,16 @@ Complete setup on a brand new Mac:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/petrex/dotfiles.git ~/dotfiles
+git clone https://github.com/joshukraine/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 
 # 2. Preview the installation
 ./setup.sh --dry-run
 
-# 3. Create links without sudo or network access
+# 3. Run the full setup
 ./setup.sh
 
-# 4. Configure optional user-owned state and preview system changes
-./scripts/setup-user.sh
-./scripts/setup-system.sh --dry-run
-
-# 5. Apply the optional system settings
-./scripts/setup-system.sh
-
-# 6. Install Homebrew packages
+# 4. Install Homebrew packages
 brew bundle install
 ```
 
@@ -285,9 +278,17 @@ DOTFILES="/custom/path/to/dotfiles" ./setup.sh
 # Custom XDG config directory (default: ~/.config)
 XDG_CONFIG_HOME="/custom/config" ./setup.sh
 
-# Preview or apply optional hostname setup separately
-./scripts/setup-system.sh --dry-run
-./scripts/setup-system.sh
+# Specify which packages to install
+STOW_PACKAGES="git,tmux,nvim" ./setup.sh
+
+# Custom backup directory for conflicts
+BACKUP_DIR="/tmp/my-backups" ./setup.sh
+
+# Skip hostname setup (advanced)
+SKIP_HOSTNAME=true ./setup.sh
+
+# Enable debug output
+DEBUG=true ./setup.sh --dry-run
 ```
 
 ### Combining Variables
@@ -404,6 +405,6 @@ If these examples don't cover your use case:
 2. **Use dry-run**: Always preview with `--dry-run` first
 3. **Read the script**: `less ~/dotfiles/setup.sh` to understand behavior
 4. **Review other guides**: See [troubleshooting.md](troubleshooting.md) for specific issues
-5. **File an issue**: Report problems on [GitHub](https://github.com/petrex/dotfiles/issues)
+5. **File an issue**: Report problems on [GitHub](https://github.com/joshukraine/dotfiles/issues)
 
 Remember: The setup script is designed to be idempotent - safe to run multiple times!
