@@ -381,8 +381,6 @@ validate_critical_scripts() {
 
   local critical_scripts=(
     "${DOTFILES_ROOT}/setup.sh"
-    "${DOTFILES_ROOT}/scripts/setup-user.sh"
-    "${DOTFILES_ROOT}/scripts/setup-system.sh"
     "${DOTFILES_ROOT}/shared/generate-all-abbr.sh"
   )
 
