@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-set -e
+# -E propagates the ERR trap into functions. Without it, a failure inside any
+# phase function exits the script silently, with no indication of where it died.
+set -Ee
 
 ################################################################################
 # bootstrap.sh
@@ -380,10 +382,13 @@ add_or_update_asdf_plugin() {
     return
   fi
 
-  if ! asdf plugin list 2>/dev/null | grep -Fq "${name}"; then
-    asdf plugin add "${name}" "${url}"
+  # A failing plugin should not abort the remaining phases of the bootstrap.
+  if ! asdf plugin list 2>/dev/null | grep -Fqx "${name}"; then
+    asdf plugin add "${name}" "${url}" ||
+      bootstrap_warn "Failed to add asdf plugin: %s" "${name}"
   else
-    asdf plugin update "${name}"
+    asdf plugin update "${name}" ||
+      bootstrap_warn "Failed to update asdf plugin: %s" "${name}"
   fi
 }
 
@@ -395,9 +400,16 @@ install_asdf_language() {
     return
   fi
 
+  if [[ ! -f "${HOME}/.tool-versions" ]]; then
+    bootstrap_warn "%s/.tool-versions not found — skipping %s" "${HOME}" "${language}"
+    return
+  fi
+
   local versions
-  # Read versions for this language from .tool-versions
-  versions="$(grep "^${language} " "${HOME}/.tool-versions" | sed "s/^${language} //")"
+  # Read versions for this language from .tool-versions. `|| true` keeps a
+  # no-match grep (exit 1) from tripping `set -e` and killing the bootstrap
+  # before the empty-check below can report it.
+  versions="$(grep "^${language} " "${HOME}/.tool-versions" | sed "s/^${language} //")" || true
 
   if [[ -z "${versions}" ]]; then
     bootstrap_warn "No version found for %s in .tool-versions" "${language}"
@@ -409,9 +421,45 @@ install_asdf_language() {
       bootstrap_info "%s %s already installed" "${language}" "${version}"
     else
       bootstrap_info "Installing %s %s ..." "${language}" "${version}"
-      asdf install "${language}" "${version}"
+      # One runtime failing to build should not abort phases 7-12.
+      asdf install "${language}" "${version}" ||
+        bootstrap_warn "Failed to install %s %s — continuing" "${language}" "${version}"
     fi
   done
+}
+
+# Put asdf on PATH for the rest of this script.
+#
+# asdf >= 0.16 is a single Go binary and no longer ships libexec/asdf.sh, so the
+# old `source .../asdf.sh` is a no-op there and shims never reach PATH — which
+# left every later phase resolving `gem`/`npm` against the system runtimes.
+# Source the shell hook only when it actually exists (asdf <= 0.15), and always
+# export the shims directory, matching the pattern in zsh/.zshrc.
+setup_asdf_shell() {
+  local candidate
+  for candidate in \
+    "$(brew --prefix asdf 2>/dev/null || true)/libexec/asdf.sh" \
+    "${HOME}/.asdf/asdf.sh"; do
+    if [[ -f "${candidate}" ]]; then
+      bootstrap_info "Sourcing legacy asdf shell hook: %s" "${candidate}"
+      # shellcheck source=/dev/null
+      source "${candidate}"
+      break
+    fi
+  done
+
+  export ASDF_DATA_DIR="${ASDF_DATA_DIR:-${HOME}/.asdf}"
+  case ":${PATH}:" in
+    *":${ASDF_DATA_DIR}/shims:"*) ;;
+    *) export PATH="${ASDF_DATA_DIR}/shims:${PATH}" ;;
+  esac
+
+  if ! command -v asdf >/dev/null 2>&1; then
+    bootstrap_warn "asdf not found on PATH — skipping language runtime setup"
+    return 1
+  fi
+
+  bootstrap_info "Using %s" "$(asdf --version 2>&1)"
 }
 
 install_asdf_languages() {
@@ -421,8 +469,6 @@ install_asdf_languages() {
     case "${OS}" in
       macos)
         brew install asdf 2>/dev/null || true
-        # shellcheck source=/dev/null
-        source "$(brew --prefix asdf)/libexec/asdf.sh" 2>/dev/null || true
         ;;
       linux)
         if [[ ! -d "${HOME}/.asdf" ]]; then
@@ -431,8 +477,6 @@ install_asdf_languages() {
         else
           bootstrap_info "asdf already installed at ~/.asdf"
         fi
-        # shellcheck source=/dev/null
-        source "${HOME}/.asdf/asdf.sh"
 
         # Install asdf build dependencies on Ubuntu
         if [[ "${PKG_MGR}" == "apt" ]]; then
@@ -442,6 +486,8 @@ install_asdf_languages() {
         fi
         ;;
     esac
+
+    setup_asdf_shell || return 0
   else
     case "${OS}" in
       macos)
@@ -809,6 +855,6 @@ main() {
   show_summary
 }
 
-trap 'bootstrap_error "Script failed at line %s" "$LINENO"' ERR
+trap 'bootstrap_error "Script failed at line %s: %s" "$LINENO" "$BASH_COMMAND"' ERR
 
 main "$@"
