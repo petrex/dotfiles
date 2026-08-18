@@ -872,8 +872,12 @@ install_gstack() {
 # Mirrors the user-scope plugins recorded in
 # ~/.claude/plugins/installed_plugins.json and known_marketplaces.json.
 
+# A marketplace and its plugins are named by the repo's own
+# .claude-plugin/marketplace.json, which need not match the repo name --
+# affaan-m/everything-claude-code declares both as "ecc". Verify against that
+# manifest when adding an entry rather than assuming the repo name.
 CLAUDE_PLUGIN_ENTRIES=(
-  "everything-claude-code:affaan-m/everything-claude-code:everything-claude-code@everything-claude-code"
+  "ecc:affaan-m/everything-claude-code:ecc@ecc"
   "karpathy-skills:forrestchang/andrej-karpathy-skills:andrej-karpathy-skills@karpathy-skills"
   "last30days-skill:mvanhorn/last30days-skill:last30days@last30days-skill"
 )
@@ -900,18 +904,24 @@ install_claude_plugins() {
     local repo="${rest%%:*}"
     local plugin_spec="${rest#*:}"
 
-    if grep -Fq "${market_name}" <<<"${existing_markets}"; then
+    # Match the marketplace name as a whole list entry. A bare substring test
+    # can match a fragment of another marketplace's name or its source repo.
+    if grep -qE "^[^[:alnum:]]*${market_name}[[:space:]]*$" <<<"${existing_markets}"; then
       bootstrap_info "Marketplace already registered: %s" "${market_name}"
     else
+      # A single bad plugin should not abort the phase, or Phase 12 never runs.
       run_cmd "claude plugin marketplace add '${repo}'" \
-        "Register Claude Code marketplace ${market_name}"
+        "Register Claude Code marketplace ${market_name}" ||
+        bootstrap_warn "Could not add marketplace %s from %s" "${market_name}" "${repo}"
     fi
 
     if grep -Fq "${plugin_spec}" <<<"${existing_plugins}"; then
       bootstrap_info "Plugin already installed: %s" "${plugin_spec}"
     else
       run_cmd "claude plugin install '${plugin_spec}' --scope user" \
-        "Install Claude Code plugin ${plugin_spec}"
+        "Install Claude Code plugin ${plugin_spec}" ||
+        bootstrap_warn "Could not install plugin %s — check that it exists in marketplace %s" \
+          "${plugin_spec}" "${market_name}"
     fi
   done
 }
