@@ -304,9 +304,41 @@ install_packages_minimal() {
           exit 1
         fi
 
+        # NONINTERACTIVE=1 makes Homebrew's installer pass -n to sudo, so it can
+        # never prompt for a password and simply aborts when one is required —
+        # the reason this phase exited without ever asking for admin access.
+        # Ask for the password up front instead, then let the install run
+        # unattended on the resulting sudo timestamp.
+        if [[ -t 0 ]]; then
+          bootstrap_info "Homebrew needs administrator access to install."
+          if ! sudo -v; then
+            rm -f "${installer}"
+            bootstrap_error "Could not obtain administrator access."
+            bootstrap_error "Homebrew requires an account with sudo rights. Re-run from one."
+            exit 1
+          fi
+
+          # The install can outlast sudo's timeout (5 minutes by default), which
+          # would strand it back in the no-password state mid-run.
+          sudo -n true 2>/dev/null
+          while true; do
+            sleep 60
+            kill -0 "$$" 2>/dev/null || exit 0
+            sudo -n true 2>/dev/null || exit 0
+          done &
+          local sudo_keepalive_pid=$!
+        else
+          bootstrap_warn "No terminal available — running the installer non-interactively."
+          bootstrap_warn "This needs passwordless sudo and will fail otherwise."
+        fi
+
         # Let the check below report the failure with something actionable,
         # rather than `set -e` killing the script with no explanation.
         NONINTERACTIVE=1 /bin/bash "${installer}" || true
+
+        if [[ -n "${sudo_keepalive_pid:-}" ]]; then
+          kill "${sudo_keepalive_pid}" 2>/dev/null || true
+        fi
         rm -f "${installer}"
       fi
 
