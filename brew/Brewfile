@@ -124,6 +124,8 @@ brew "uv"
 # cask "brave-browser"            # disabled
 # cask "carbon-copy-cloner"       # disabled
 # cask "cleanmymac"               # disabled
+cask "claude-code@latest"
+cask "codex"
 # cask "firefox"                  # disabled
 cask "font-cascadia-code"
 cask "font-cascadia-code-nf"
