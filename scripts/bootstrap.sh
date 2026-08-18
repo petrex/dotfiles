@@ -281,21 +281,53 @@ install_packages_minimal() {
 
   case "${PKG_MGR}" in
     brew)
-      if command -v "${HOMEBREW_PREFIX}/bin/brew" &>/dev/null; then
-        bootstrap_info "Homebrew already installed"
+      local brew_bin="${HOMEBREW_PREFIX}/bin/brew"
+
+      if [[ -x "${brew_bin}" ]]; then
+        bootstrap_info "Homebrew already installed at %s" "${brew_bin}"
+      elif [[ "${DRY_RUN}" == "true" ]]; then
+        bootstrap_info "[DRY RUN] Would install Homebrew"
       else
-        if [[ "${DRY_RUN}" == "true" ]]; then
-          bootstrap_info "[DRY RUN] Would install Homebrew"
-        else
-          bootstrap_info "Installing Homebrew..."
-          NONINTERACTIVE=1 /bin/bash -c \
-            "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        bootstrap_info "Installing Homebrew..."
+
+        # Download and run as separate steps. With `bash -c "$(curl ...)"` a
+        # failed download collapses to `bash -c ""`, which exits 0 — so the
+        # bootstrap would march on as if Homebrew had been installed and then
+        # fail confusingly several phases later.
+        local installer
+        installer="$(mktemp)"
+        if ! curl -fsSL \
+          https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh \
+          -o "${installer}"; then
+          rm -f "${installer}"
+          bootstrap_error "Could not download the Homebrew installer — check network access"
+          exit 1
         fi
+
+        # Let the check below report the failure with something actionable,
+        # rather than `set -e` killing the script with no explanation.
+        NONINTERACTIVE=1 /bin/bash "${installer}" || true
+        rm -f "${installer}"
+      fi
+
+      # The installer needs sudo and can fail or land outside HOMEBREW_PREFIX,
+      # so confirm brew really is usable before anything depends on it.
+      if [[ ! -x "${brew_bin}" ]]; then
+        brew_bin="$(command -v brew || true)"
+      fi
+
+      if [[ "${DRY_RUN}" == "false" && ! -x "${brew_bin}" ]]; then
+        bootstrap_error "Homebrew is still not available after Phase 3."
+        bootstrap_error "It needs sudo access from an admin account. Install it manually:"
+        # shellcheck disable=SC2016  # literal command for the user to copy, not for expansion
+        bootstrap_error '  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+        bootstrap_error "then re-run this script."
+        exit 1
       fi
 
       # Ensure brew is on PATH for this session
       if [[ "${DRY_RUN}" == "false" ]]; then
-        eval "$("${HOMEBREW_PREFIX}/bin/brew" shellenv)"
+        eval "$("${brew_bin}" shellenv)"
       fi
 
       # Minimal formulae needed for subsequent phases
@@ -532,6 +564,41 @@ install_gems_and_npm() {
 # Phase 8: Full Package Install
 # ---------------------------------------------------------------------------
 
+# Homebrew 6+ refuses to load formulae from non-official taps until they are
+# explicitly trusted, which aborts `brew bundle install` with:
+#   Refusing to load formula olets/tap/zsh-abbr from untrusted tap olets/tap.
+#
+# Trust exactly the taps this Brewfile already declares. This is deliberately
+# not a blanket bypass of the check — taps added later still require a decision.
+trust_brewfile_taps() {
+  local brewfile="$1"
+
+  # `brew trust` only exists on Homebrew 6+; older versions need no trusting.
+  if ! brew commands 2>/dev/null | grep -qx trust; then
+    bootstrap_info "This Homebrew has no 'brew trust' — skipping tap trust step"
+    return
+  fi
+
+  # brew stores trust in ${XDG_CONFIG_HOME}/homebrew/trust.json, falling back to
+  # ~/.homebrew/trust.json when XDG_CONFIG_HOME is unset. Bootstrap runs before
+  # any shell config is loaded, so without this the trust would be written to the
+  # fallback path while the configured shell later reads the XDG one — and the
+  # untrusted-tap error would come back. Pin it to the value the rest of the
+  # dotfiles use (shared/environment.sh, setup.sh).
+  export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+
+  local tap
+  while IFS= read -r tap; do
+    [[ -z "${tap}" ]] && continue
+    if [[ "${DRY_RUN}" == "true" ]]; then
+      bootstrap_info "[DRY RUN] Would trust tap: %s" "${tap}"
+    else
+      bootstrap_info "Trusting tap: %s" "${tap}"
+      brew trust --tap "${tap}" || bootstrap_warn "Could not trust tap: %s" "${tap}"
+    fi
+  done < <(sed -nE 's/^[[:space:]]*tap[[:space:]]+"([^"]+)".*/\1/p' "${brewfile}")
+}
+
 install_packages_full() {
   bootstrap_echo "Phase 8: Full package install"
 
@@ -546,6 +613,8 @@ install_packages_full() {
         bootstrap_warn "%s/Brewfile not found — skipping brew bundle" "${HOME}"
         return
       fi
+
+      trust_brewfile_taps "${HOME}/Brewfile"
 
       run_cmd "brew bundle install --file='${HOME}/Brewfile'" \
         "Install packages from Brewfile (this may take a while)"
