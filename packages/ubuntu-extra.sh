@@ -25,6 +25,52 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Download a single static binary from a GitHub release and put it on PATH.
+#
+# Several tools in the Brewfile have no apt package at all, but do publish
+# Linux binaries. This keeps the Ubuntu package set matching macOS instead of
+# silently doing without them.
+#
+# Usage: install_release_binary <command> <owner/repo> <asset-x86_64> <asset-arm64>
+install_release_binary() {
+  local cmd="$1" repo="$2" asset_x86="$3" asset_arm="$4"
+  local asset arch tag url
+
+  if command_exists "${cmd}"; then
+    ubuntu_extra_info "${cmd} already installed"
+    return 0
+  fi
+
+  arch="$(uname -m)"
+  case "${arch}" in
+    x86_64 | amd64) asset="${asset_x86}" ;;
+    aarch64 | arm64) asset="${asset_arm}" ;;
+    *)
+      ubuntu_extra_warn "No ${cmd} release binary for ${arch} — skipping"
+      return 0
+      ;;
+  esac
+
+  tag="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null \
+    | sed -nE 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | head -1)" || true
+  if [[ -z "${tag}" ]]; then
+    ubuntu_extra_warn "Could not resolve the latest ${cmd} release — skipping"
+    return 0
+  fi
+
+  url="https://github.com/${repo}/releases/download/${tag}/${asset}"
+  ubuntu_extra_info "Installing ${cmd} ${tag} (${arch})..."
+  if ! curl -fsSL -o "/tmp/${cmd}.bin" "${url}"; then
+    ubuntu_extra_warn "Could not download ${url} — skipping ${cmd}"
+    rm -f "/tmp/${cmd}.bin"
+    return 0
+  fi
+
+  sudo install -m 755 "/tmp/${cmd}.bin" "/usr/local/bin/${cmd}" \
+    || ubuntu_extra_warn "Could not install ${cmd} to /usr/local/bin"
+  rm -f "/tmp/${cmd}.bin"
+}
+
 # ---------------------------------------------------------------------------
 # PPAs
 # ---------------------------------------------------------------------------
@@ -174,6 +220,53 @@ install_zoxide() {
 }
 
 # ---------------------------------------------------------------------------
+# Parity with the macOS Brewfile
+#
+# These have no apt package (or only a badly outdated one), so they are
+# installed the same way Homebrew would give them on macOS.
+# ---------------------------------------------------------------------------
+
+install_atuin() {
+  if command_exists atuin; then
+    ubuntu_extra_info "atuin already installed"
+    return
+  fi
+
+  ubuntu_extra_info "Installing atuin (shell history)..."
+  curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh \
+    || ubuntu_extra_warn "atuin install script failed"
+}
+
+install_rust() {
+  if command_exists cargo || command_exists rustc; then
+    ubuntu_extra_info "Rust already installed"
+    return
+  fi
+
+  # Ubuntu's rustc/cargo packages lag well behind; rustup is what the
+  # Brewfile's `rust` formula effectively gives you on macOS.
+  ubuntu_extra_info "Installing Rust via rustup..."
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --no-modify-path || ubuntu_extra_warn "rustup install failed"
+}
+
+install_tealdeer() {
+  # Asset is musl-static, so it runs on any glibc version.
+  install_release_binary tldr tealdeer-rs/tealdeer \
+    tealdeer-linux-x86_64-musl tealdeer-linux-aarch64-musl
+}
+
+install_hadolint() {
+  install_release_binary hadolint hadolint/hadolint \
+    hadolint-linux-x86_64 hadolint-linux-arm64
+}
+
+install_herdr() {
+  install_release_binary herdr herdrdev/herdr \
+    herdr-linux-x86_64 herdr-linux-aarch64
+}
+
+# ---------------------------------------------------------------------------
 # Git-cloned tools
 # ---------------------------------------------------------------------------
 
@@ -206,5 +299,12 @@ install_yq
 install_diff_so_fancy
 install_zoxide
 install_zsh_abbr
+
+# Brewfile parity
+install_atuin
+install_rust
+install_tealdeer
+install_hadolint
+install_herdr
 
 ubuntu_extra_info "Ubuntu extra packages complete"

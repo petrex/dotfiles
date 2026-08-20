@@ -30,8 +30,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scrip
 # Preview without making changes
 bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh) --dry-run
 
-# Skip the lengthy Brewfile install (macOS)
-./scripts/bootstrap.sh --skip-brew-bundle
+# Skip the lengthy package install (all platforms)
+./scripts/bootstrap.sh --skip-packages
 
 # All flags
 ./scripts/bootstrap.sh --help
