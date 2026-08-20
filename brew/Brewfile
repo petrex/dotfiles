@@ -21,6 +21,7 @@ brew "bash-completion"
 brew "bat"
 # brew "bats-core"                # disabled — bash test framework
 brew "btop"
+brew "bun"
 # brew "cloc"                     # disabled — line counter
 brew "cmake"
 brew "coreutils"
@@ -47,6 +48,7 @@ brew "gnu-sed"
 brew "gnupg"
 brew "graphviz"
 brew "hadolint"
+brew "herdr"
 brew "pkgconf"
 # brew "highlight"                # disabled — source code highlighter
 brew "htop"
@@ -149,9 +151,11 @@ cask "istat-menus"
 cask "iterm2"
 # cask "kitty"                    # not needed — using ghostty
 # cask "loom"                     # not needed — screen recording
+cask "moonlight"
 # cask "ngrok"                    # disabled
 # cask "notion"                   # disabled
 # cask "obsidian"                 # disabled
+cask "onyx"
 # cask "postico"                  # not needed — PostgreSQL GUI
 # cask "qxmledit"                 # not needed — XML editor
 # cask "screenflick"              # not needed — screen recording
@@ -161,7 +165,7 @@ cask "iterm2"
 # cask "todoist-app"              # disabled
 # cask "viber"                    # disabled
 # cask "whatsapp"                 # disabled
-cask "tailscale"
+cask "tailscale-app"
 cask "visual-studio-code"
 cask "zoom"
 
