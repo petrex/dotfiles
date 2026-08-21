@@ -17,8 +17,68 @@ cachyos_extra_info() {
   printf "[INFO] %s\n" "$1"
 }
 
+cachyos_extra_warn() {
+  printf "[WARN] %s\n" "$1" >&2
+}
+
 command_exists() {
   command -v "$1" >/dev/null 2>&1
+}
+
+# Install a static binary from a GitHub release.
+#
+# hadolint and herdr are in the Brewfile but are not in the Arch repos, and
+# their AUR packages need an AUR helper that may not be present. Their upstream
+# Linux binaries give the same tools without that dependency.
+#
+# Usage: install_release_binary <command> <owner/repo> <asset-x86_64> <asset-arm64>
+install_release_binary() {
+  local cmd="$1" repo="$2" asset_x86="$3" asset_arm="$4"
+  local asset arch tag url
+
+  if command_exists "${cmd}"; then
+    cachyos_extra_info "${cmd} already installed"
+    return 0
+  fi
+
+  arch="$(uname -m)"
+  case "${arch}" in
+    x86_64 | amd64) asset="${asset_x86}" ;;
+    aarch64 | arm64) asset="${asset_arm}" ;;
+    *)
+      cachyos_extra_warn "No ${cmd} release binary for ${arch} — skipping"
+      return 0
+      ;;
+  esac
+
+  tag="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null \
+    | sed -nE 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | head -1)" || true
+  if [[ -z "${tag}" ]]; then
+    cachyos_extra_warn "Could not resolve the latest ${cmd} release — skipping"
+    return 0
+  fi
+
+  url="https://github.com/${repo}/releases/download/${tag}/${asset}"
+  cachyos_extra_info "Installing ${cmd} ${tag} (${arch})..."
+  if ! curl -fsSL -o "/tmp/${cmd}.bin" "${url}"; then
+    cachyos_extra_warn "Could not download ${url} — skipping ${cmd}"
+    rm -f "/tmp/${cmd}.bin"
+    return 0
+  fi
+
+  sudo install -m 755 "/tmp/${cmd}.bin" "/usr/local/bin/${cmd}" \
+    || cachyos_extra_warn "Could not install ${cmd} to /usr/local/bin"
+  rm -f "/tmp/${cmd}.bin"
+}
+
+install_hadolint() {
+  install_release_binary hadolint hadolint/hadolint \
+    hadolint-linux-x86_64 hadolint-linux-arm64
+}
+
+install_herdr() {
+  install_release_binary herdr herdrdev/herdr \
+    herdr-linux-x86_64 herdr-linux-aarch64
 }
 
 # ---------------------------------------------------------------------------
@@ -84,5 +144,9 @@ cachyos_extra_info "Installing CachyOS extra packages..."
 
 install_zsh_abbr
 install_uv
+
+# Brewfile parity — not in the Arch repos
+install_hadolint
+install_herdr
 
 cachyos_extra_info "CachyOS extra packages complete"

@@ -32,3 +32,11 @@ universal-ctags
 wget
 zlib1g-dev
 zsh
+unzip
+silversearcher-ag
+trash-cli
+autoconf
+bison
+libncurses-dev
+libffi-dev
+libgdbm-dev

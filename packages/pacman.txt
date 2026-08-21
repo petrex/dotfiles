@@ -42,3 +42,14 @@ wget
 yq
 zoxide
 zsh
+unzip
+libyaml
+openssh
+inetutils
+autoconf
+bison
+ncurses
+libffi
+gdbm
+atuin
+aws-cli

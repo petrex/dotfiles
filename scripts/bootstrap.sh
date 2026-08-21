@@ -19,7 +19,8 @@ set -Ee
 #
 # Options:
 #   --dry-run            Show what would be done without making changes
-#   --skip-brew-bundle   Skip the full Brewfile install (macOS Phase 8)
+#   --skip-packages      Skip the full Phase 8 package install (all platforms)
+#   --skip-brew-bundle   Alias of --skip-packages, kept for compatibility
 #   --help               Show this help message
 #
 # Supported platforms:
@@ -38,11 +39,12 @@ DOTFILES_BRANCH="master"
 
 DRY_RUN=false
 SKIP_BREW_BUNDLE=false
+SKIP_PACKAGES=false
 
 # Platform globals — set in preflight()
-OS=""           # "macos" | "linux"
-DISTRO=""       # "macos" | "ubuntu" | "cachyos" | "arch"
-PKG_MGR=""      # "brew" | "apt" | "pacman"
+OS=""      # "macos" | "linux"
+DISTRO=""  # "macos" | "ubuntu" | "cachyos" | "arch"
+PKG_MGR="" # "brew" | "apt" | "pacman"
 HOMEBREW_PREFIX=""
 
 # Logging helpers (mirrors setup.sh patterns)
@@ -72,6 +74,58 @@ bootstrap_error() {
   shift
   # shellcheck disable=SC2059
   printf "[ERROR] ${fmt}\\n" "$@" >&2
+}
+
+# Ask for the admin password up front, then keep the sudo timestamp warm.
+#
+# Every Linux phase shells out to sudo, but none of them ever prompted: when a
+# non-interactive apt/pacman call hits a password requirement it simply fails,
+# and `set -e` killed the bootstrap with no explanation. This mirrors what
+# Phase 3 already does before running the Homebrew installer on macOS.
+SUDO_KEEPALIVE_PID=""
+
+prime_sudo() {
+  local purpose="${1:-installing packages}"
+
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    bootstrap_info "[DRY RUN] Would request administrator access for %s" "${purpose}"
+    return 0
+  fi
+
+  # Already root, or a passwordless sudo timestamp is live — nothing to ask for.
+  if [[ "${EUID}" -eq 0 ]] || sudo -n true 2>/dev/null; then
+    return 0
+  fi
+
+  if [[ ! -t 0 ]]; then
+    bootstrap_warn "No terminal available — cannot prompt for the sudo password."
+    bootstrap_warn "This needs passwordless sudo and will fail otherwise."
+    return 0
+  fi
+
+  bootstrap_info "Administrator access is required for %s." "${purpose}"
+  if ! sudo -v; then
+    bootstrap_error "Could not obtain administrator access."
+    bootstrap_error "This script needs an account with sudo rights. Re-run from one."
+    exit 1
+  fi
+
+  # Package installs routinely outlast sudo's 5-minute timeout, which would
+  # strand a later phase back in the no-password state mid-run.
+  [[ -n "${SUDO_KEEPALIVE_PID}" ]] && return 0
+  while true; do
+    sleep 60
+    kill -0 "$$" 2>/dev/null || exit 0
+    sudo -n true 2>/dev/null || exit 0
+  done &
+  SUDO_KEEPALIVE_PID=$!
+}
+
+stop_sudo_keepalive() {
+  if [[ -n "${SUDO_KEEPALIVE_PID}" ]]; then
+    kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+    SUDO_KEEPALIVE_PID=""
+  fi
 }
 
 run_cmd() {
@@ -104,14 +158,15 @@ Supported platforms:
 
 Options:
   --dry-run            Show what would be done without making changes
-  --skip-brew-bundle   Skip the full Brewfile install (macOS only)
+  --skip-packages      Skip the full package install in Phase 8 (all platforms)
+  --skip-brew-bundle   Alias of --skip-packages, kept for compatibility
   --help               Show this help message
 
 Examples:
   bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh)
   $0                      # Full bootstrap
   $0 --dry-run            # Preview all phases
-  $0 --skip-brew-bundle   # Skip lengthy Brewfile install (macOS)
+  $0 --skip-packages      # Skip the lengthy Phase 8 package install
 EOF
 }
 
@@ -122,7 +177,14 @@ parse_args() {
         DRY_RUN=true
         shift
         ;;
+      --skip-packages)
+        # Cross-platform: skips Phase 8 on every platform.
+        SKIP_PACKAGES=true
+        SKIP_BREW_BUNDLE=true
+        shift
+        ;;
       --skip-brew-bundle)
+        # Retained for compatibility; --skip-packages is the portable spelling.
         SKIP_BREW_BUNDLE=true
         shift
         ;;
@@ -168,7 +230,7 @@ preflight() {
         # shellcheck source=/dev/null
         source /etc/os-release
         case "${ID}" in
-          ubuntu|debian)
+          ubuntu | debian)
             DISTRO="ubuntu"
             PKG_MGR="apt"
             bootstrap_info "Ubuntu/Debian detected — using apt"
@@ -185,8 +247,27 @@ preflight() {
             bootstrap_info "Arch Linux detected — using pacman"
             ;;
           *)
-            bootstrap_error "Unsupported Linux distribution: %s" "${ID}"
-            exit 1
+            # Derivatives (Pop!_OS, Mint, EndeavourOS, Manjaro...) carry their
+            # own ID but declare their base in ID_LIKE. Fall back to that
+            # rather than refusing to run on a machine we can handle.
+            case " ${ID_LIKE:-} " in
+              *" ubuntu "* | *" debian "*)
+                DISTRO="ubuntu"
+                PKG_MGR="apt"
+                bootstrap_info "%s detected (Debian-family via ID_LIKE) — using apt" "${ID}"
+                ;;
+              *" arch "*)
+                # shellcheck disable=SC2034
+                DISTRO="arch"
+                PKG_MGR="pacman"
+                bootstrap_info "%s detected (Arch-family via ID_LIKE) — using pacman" "${ID}"
+                ;;
+              *)
+                bootstrap_error "Unsupported Linux distribution: %s" "${ID}"
+                bootstrap_error "Supported: Ubuntu/Debian (apt), CachyOS/Arch (pacman)"
+                exit 1
+                ;;
+            esac
             ;;
         esac
       else
@@ -200,9 +281,76 @@ preflight() {
       ;;
   esac
 
+  # apt will happily block forever on a debconf prompt or, on Ubuntu 22.04+, on
+  # needrestart's "which services should be restarted?" dialog. An unattended
+  # bootstrap has nobody to answer either, so answer them here.
+  if [[ "${PKG_MGR}" == "apt" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+    export NEEDRESTART_SUSPEND=1
+  fi
+
   if [[ "${DRY_RUN}" == "true" ]]; then
     bootstrap_echo "DRY RUN MODE — no changes will be made"
   fi
+}
+
+# Read a newline-delimited package list, dropping blank lines and comments.
+#
+# The Brewfile is Ruby and has always tolerated comments; apt.txt and
+# pacman.txt were fed straight into `$(cat ...)`, so a single `#` note would
+# have been passed to the package manager as a package name. Now they support
+# the same annotation style the Brewfile uses.
+read_package_list() {
+  local list_file="$1"
+  sed -E 's/#.*$//; s/[[:space:]]+$//' "${list_file}" | grep -v '^[[:space:]]*$' || true
+}
+
+# Install packages without letting one bad name cost the entire list.
+#
+# `apt install a b typo` and `pacman -S a b typo` both abort outright and
+# install *nothing*, so one stale entry took down the whole phase — and with it
+# the rest of the bootstrap. `brew bundle` on macOS has always continued past a
+# failure and reported at the end; this gives Linux the same behaviour by
+# retrying package-by-package and reporting what could not be installed.
+install_package_list() {
+  local -a packages=("$@")
+  local -a failed=()
+  local pkg
+
+  [[ ${#packages[@]} -eq 0 ]] && return 0
+
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    bootstrap_info "[DRY RUN] Would install %d package(s): %s" "${#packages[@]}" "${packages[*]}"
+    return 0
+  fi
+
+  bootstrap_info "Installing %d package(s) via %s" "${#packages[@]}" "${PKG_MGR}"
+  if linux_install_packages "${packages[@]}"; then
+    return 0
+  fi
+
+  bootstrap_warn "Bulk install failed — retrying package-by-package to isolate the bad entries"
+  for pkg in "${packages[@]}"; do
+    linux_install_packages "${pkg}" || failed+=("${pkg}")
+  done
+
+  if [[ ${#failed[@]} -gt 0 ]]; then
+    bootstrap_warn "Could not install %d package(s): %s" "${#failed[@]}" "${failed[*]}"
+    bootstrap_warn "Continuing — check the names against your distro's repositories."
+  fi
+  return 0
+}
+
+linux_install_packages() {
+  case "${PKG_MGR}" in
+    apt) sudo -E apt-get install -y "$@" ;;
+    pacman) sudo pacman -S --needed --noconfirm "$@" ;;
+    *)
+      bootstrap_warn "No Linux package manager set — cannot install: %s" "$*"
+      return 1
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -235,14 +383,20 @@ install_build_tools() {
       bootstrap_info "Xcode CLI tools installed"
       ;;
     linux)
+      # First sudo of the run — ask for the password now rather than letting a
+      # non-interactive package manager fail against an empty timestamp.
+      prime_sudo "installing build tools"
+
       case "${PKG_MGR}" in
         apt)
-          run_cmd "sudo apt update && sudo apt install -y build-essential curl git" \
-            "Install build essentials for Ubuntu"
+          run_cmd "sudo -E apt-get update" "Refresh apt package index" \
+            || bootstrap_warn "apt-get update failed — continuing with the existing index"
+          install_package_list build-essential curl git ca-certificates
           ;;
         pacman)
-          run_cmd "sudo pacman -Syu --noconfirm && sudo pacman -S --needed --noconfirm base-devel curl git" \
-            "Install build essentials for Arch/CachyOS"
+          run_cmd "sudo pacman -Syu --noconfirm" "Refresh and upgrade pacman packages" \
+            || bootstrap_warn "pacman -Syu failed — continuing with the existing database"
+          install_package_list base-devel curl git ca-certificates
           ;;
       esac
       ;;
@@ -377,24 +531,53 @@ install_packages_minimal() {
       done
       ;;
     apt)
-      local minimal_apt=(git stow zsh curl build-essential)
+      # unzip is not a nicety: bun's installer (Phase 10) extracts a zip and
+      # fails on a minimal image without it.
+      local minimal_apt=(git stow zsh curl unzip build-essential)
       bootstrap_info "Installing minimal apt packages: %s" "${minimal_apt[*]}"
-      if [[ "${DRY_RUN}" == "true" ]]; then
-        bootstrap_info "[DRY RUN] Would install: %s" "${minimal_apt[*]}"
-      else
-        sudo apt install -y "${minimal_apt[@]}"
-      fi
+      prime_sudo "installing base packages"
+      install_package_list "${minimal_apt[@]}"
+      verify_minimal_linux_packages
       ;;
     pacman)
-      local minimal_pacman=(git stow zsh curl base-devel)
+      # setup.sh reads the current hostname in Phase 5. Minimal Arch cloud
+      # images do not ship /usr/bin/hostname; pacman's inetutils provides it.
+      local minimal_pacman=(git stow zsh curl unzip base-devel inetutils)
       bootstrap_info "Installing minimal pacman packages: %s" "${minimal_pacman[*]}"
-      if [[ "${DRY_RUN}" == "true" ]]; then
-        bootstrap_info "[DRY RUN] Would install: %s" "${minimal_pacman[*]}"
-      else
-        sudo pacman -S --needed --noconfirm "${minimal_pacman[@]}"
-      fi
+      prime_sudo "installing base packages"
+      install_package_list "${minimal_pacman[@]}"
+      verify_minimal_linux_packages
       ;;
   esac
+}
+
+# Confirm the tools the *later* phases hard-depend on actually landed.
+#
+# macOS verifies brew is executable before continuing and exits with something
+# actionable if not. Linux had no equivalent: a failed install left the run to
+# collapse several phases later, far from the cause.
+verify_minimal_linux_packages() {
+  [[ "${DRY_RUN}" == "true" ]] && return 0
+
+  local -a required=(git stow curl)
+  local -a missing=()
+  local tool
+
+  for tool in "${required[@]}"; do
+    command -v "${tool}" >/dev/null 2>&1 || missing+=("${tool}")
+  done
+
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    bootstrap_error "Required tool(s) still missing after Phase 3: %s" "${missing[*]}"
+    bootstrap_error "Install them manually, then re-run this script:"
+    case "${PKG_MGR}" in
+      apt) bootstrap_error "  sudo apt-get install -y %s" "${missing[*]}" ;;
+      pacman) bootstrap_error "  sudo pacman -S --needed %s" "${missing[*]}" ;;
+    esac
+    exit 1
+  fi
+
+  bootstrap_info "Verified: git, stow and curl are available"
 }
 
 # ---------------------------------------------------------------------------
@@ -448,11 +631,11 @@ add_or_update_asdf_plugin() {
 
   # A failing plugin should not abort the remaining phases of the bootstrap.
   if ! asdf plugin list 2>/dev/null | grep -Fqx "${name}"; then
-    asdf plugin add "${name}" "${url}" ||
-      bootstrap_warn "Failed to add asdf plugin: %s" "${name}"
+    asdf plugin add "${name}" "${url}" \
+      || bootstrap_warn "Failed to add asdf plugin: %s" "${name}"
   else
-    asdf plugin update "${name}" ||
-      bootstrap_warn "Failed to update asdf plugin: %s" "${name}"
+    asdf plugin update "${name}" \
+      || bootstrap_warn "Failed to update asdf plugin: %s" "${name}"
   fi
 }
 
@@ -486,10 +669,81 @@ install_asdf_language() {
     else
       bootstrap_info "Installing %s %s ..." "${language}" "${version}"
       # One runtime failing to build should not abort phases 7-12.
-      asdf install "${language}" "${version}" ||
-        bootstrap_warn "Failed to install %s %s — continuing" "${language}" "${version}"
+      asdf install "${language}" "${version}" \
+        || bootstrap_warn "Failed to install %s %s — continuing" "${language}" "${version}"
     fi
   done
+}
+
+# Install asdf on Linux, preferring the same generation macOS gets.
+#
+# Homebrew hands macOS asdf 0.16+ (a single Go binary), but Linux was pinned to
+# a v0.15.0 git clone — a different, end-of-life implementation. Install the
+# release binary so both platforms run the same asdf, falling back to the old
+# clone if the download is unavailable for this architecture.
+install_asdf_linux() {
+  if command -v asdf >/dev/null 2>&1 || [[ -x "${HOME}/.asdf/bin/asdf" ]]; then
+    bootstrap_info "asdf already installed"
+    return 0
+  fi
+
+  local arch asdf_arch
+  arch="$(uname -m)"
+  case "${arch}" in
+    x86_64 | amd64) asdf_arch="amd64" ;;
+    aarch64 | arm64) asdf_arch="arm64" ;;
+    i386 | i686) asdf_arch="386" ;;
+    *)
+      bootstrap_warn "Unrecognised architecture %s — falling back to the asdf git clone" "${arch}"
+      install_asdf_linux_git
+      return $?
+      ;;
+  esac
+
+  local tag
+  tag="$(curl -fsSL https://api.github.com/repos/asdf-vm/asdf/releases/latest 2>/dev/null \
+    | sed -nE 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' | head -1)" || true
+
+  if [[ -z "${tag}" ]]; then
+    bootstrap_warn "Could not determine the latest asdf release — falling back to the git clone"
+    install_asdf_linux_git
+    return $?
+  fi
+
+  local url="https://github.com/asdf-vm/asdf/releases/download/${tag}/asdf-${tag}-linux-${asdf_arch}.tar.gz"
+  local tarball
+  tarball="$(mktemp)"
+
+  bootstrap_info "Installing asdf %s (linux-%s)..." "${tag}" "${asdf_arch}"
+  if ! curl -fsSL "${url}" -o "${tarball}"; then
+    rm -f "${tarball}"
+    bootstrap_warn "Could not download %s — falling back to the git clone" "${url}"
+    install_asdf_linux_git
+    return $?
+  fi
+
+  mkdir -p "${HOME}/.local/bin"
+  if ! tar -xzf "${tarball}" -C "${HOME}/.local/bin" asdf; then
+    rm -f "${tarball}"
+    bootstrap_warn "Could not extract the asdf archive — falling back to the git clone"
+    install_asdf_linux_git
+    return $?
+  fi
+
+  rm -f "${tarball}"
+  chmod +x "${HOME}/.local/bin/asdf"
+  export PATH="${HOME}/.local/bin:${PATH}"
+  bootstrap_info "asdf installed to %s/.local/bin/asdf" "${HOME}"
+}
+
+install_asdf_linux_git() {
+  if [[ -d "${HOME}/.asdf" ]]; then
+    bootstrap_info "asdf already present at ~/.asdf"
+    return 0
+  fi
+  bootstrap_info "Installing asdf via git clone (v0.15.0)..."
+  git clone https://github.com/asdf-vm/asdf.git "${HOME}/.asdf" --branch v0.15.0 \
+    || bootstrap_warn "Could not clone asdf — language runtimes will be skipped"
 }
 
 # Put asdf on PATH for the rest of this script.
@@ -513,10 +767,18 @@ setup_asdf_shell() {
   done
 
   export ASDF_DATA_DIR="${ASDF_DATA_DIR:-${HOME}/.asdf}"
-  case ":${PATH}:" in
-    *":${ASDF_DATA_DIR}/shims:"*) ;;
-    *) export PATH="${ASDF_DATA_DIR}/shims:${PATH}" ;;
-  esac
+
+  # Cover every place asdf can land: the shims, the Linux release binary in
+  # ~/.local/bin, and the bin/ of a v0.15 git clone.
+  local dir
+  for dir in "${ASDF_DATA_DIR}/shims" "${HOME}/.local/bin" "${HOME}/.asdf/bin"; do
+    # The shims directory is created only after the first runtime install.
+    # Add it before that happens so gem/npm resolve in the following phase.
+    case ":${PATH}:" in
+      *":${dir}:"*) ;;
+      *) export PATH="${dir}:${PATH}" ;;
+    esac
+  done
 
   if ! command -v asdf >/dev/null 2>&1; then
     bootstrap_warn "asdf not found on PATH — skipping language runtime setup"
@@ -535,19 +797,27 @@ install_asdf_languages() {
         brew install asdf 2>/dev/null || true
         ;;
       linux)
-        if [[ ! -d "${HOME}/.asdf" ]]; then
-          bootstrap_info "Installing asdf via git clone..."
-          git clone https://github.com/asdf-vm/asdf.git "${HOME}/.asdf" --branch v0.15.0
-        else
-          bootstrap_info "asdf already installed at ~/.asdf"
-        fi
+        install_asdf_linux
 
-        # Install asdf build dependencies on Ubuntu
-        if [[ "${PKG_MGR}" == "apt" ]]; then
-          bootstrap_info "Installing asdf build dependencies for Ubuntu..."
-          sudo apt install -y autoconf bison libssl-dev libreadline-dev \
-            zlib1g-dev libncurses-dev libffi-dev libgdbm-dev libyaml-dev
-        fi
+        # Build dependencies for the Ruby/Node compiles that follow. Arch was
+        # previously skipped entirely, so `asdf install ruby` failed there for
+        # want of openssl/readline/libyaml headers.
+        prime_sudo "installing language build dependencies"
+        case "${PKG_MGR}" in
+          apt)
+            bootstrap_info "Installing asdf build dependencies for Ubuntu/Debian..."
+            install_package_list autoconf bison libssl-dev libreadline-dev \
+              zlib1g-dev libncurses-dev libffi-dev libgdbm-dev libyaml-dev
+            ;;
+          pacman)
+            bootstrap_info "Installing asdf build dependencies for Arch/CachyOS..."
+            # zlib headers are part of every Arch base install. CachyOS swaps
+            # zlib for the ABI-compatible zlib-ng-compat, so explicitly asking
+            # pacman for zlib would create a package conflict there.
+            install_package_list autoconf bison openssl readline \
+              ncurses libffi gdbm libyaml
+            ;;
+        esac
         ;;
     esac
 
@@ -697,57 +967,56 @@ install_packages_full() {
       run_cmd "brew bundle install --file='${HOME}/Brewfile'" \
         "Install packages from Brewfile (this may take a while)"
       ;;
-    apt)
-      local pkg_file="${DOTFILES_DIR}/packages/apt.txt"
-      if [[ ! -f "${pkg_file}" ]]; then
-        bootstrap_warn "packages/apt.txt not found — skipping"
+    apt | pacman)
+      if [[ "${SKIP_PACKAGES}" == "true" ]]; then
+        bootstrap_info "Skipping full package install (--skip-packages)"
         return
       fi
 
-      bootstrap_info "Installing apt packages from packages/apt.txt..."
-      if [[ "${DRY_RUN}" == "true" ]]; then
-        bootstrap_info "[DRY RUN] Would install packages from %s" "${pkg_file}"
+      local pkg_file extra_script
+      if [[ "${PKG_MGR}" == "apt" ]]; then
+        pkg_file="${DOTFILES_DIR}/packages/apt.txt"
+        extra_script="${DOTFILES_DIR}/packages/ubuntu-extra.sh"
       else
-        # shellcheck disable=SC2046
-        sudo apt install -y $(cat "${pkg_file}")
+        pkg_file="${DOTFILES_DIR}/packages/pacman.txt"
+        extra_script="${DOTFILES_DIR}/packages/cachyos-extra.sh"
       fi
 
-      # Install extra tools (PPAs, binaries, etc.)
-      local extra_script="${DOTFILES_DIR}/packages/ubuntu-extra.sh"
-      if [[ -f "${extra_script}" ]]; then
-        bootstrap_info "Running ubuntu-extra.sh for additional tools..."
-        if [[ "${DRY_RUN}" == "true" ]]; then
-          bootstrap_info "[DRY RUN] Would source %s" "${extra_script}"
-        else
-          # shellcheck source=../packages/ubuntu-extra.sh
-          source "${extra_script}"
-        fi
-      fi
-      ;;
-    pacman)
-      local pkg_file="${DOTFILES_DIR}/packages/pacman.txt"
       if [[ ! -f "${pkg_file}" ]]; then
-        bootstrap_warn "packages/pacman.txt not found — skipping"
+        bootstrap_warn "%s not found — skipping" "${pkg_file}"
         return
       fi
 
-      bootstrap_info "Installing pacman packages from packages/pacman.txt..."
-      if [[ "${DRY_RUN}" == "true" ]]; then
-        bootstrap_info "[DRY RUN] Would install packages from %s" "${pkg_file}"
-      else
-        # shellcheck disable=SC2046
-        sudo pacman -S --needed --noconfirm $(cat "${pkg_file}")
+      prime_sudo "installing packages"
+
+      # Refresh the index first. Phase 1 did this, but several phases and a
+      # long compile have happened since, and apt fails outright on a stale
+      # index once a mirror rotates.
+      if [[ "${PKG_MGR}" == "apt" ]]; then
+        run_cmd "sudo -E apt-get update" "Refresh apt package index" \
+          || bootstrap_warn "apt-get update failed — continuing with the existing index"
       fi
 
-      # Install extra tools (AUR, etc.)
-      local extra_script="${DOTFILES_DIR}/packages/cachyos-extra.sh"
+      bootstrap_info "Installing packages from %s..." "${pkg_file}"
+      local -a pkgs=()
+      while IFS= read -r pkg; do
+        pkgs+=("${pkg}")
+      done < <(read_package_list "${pkg_file}")
+      install_package_list "${pkgs[@]}"
+
+      # Extra tools: PPAs and binary installs on Ubuntu, AUR on Arch.
       if [[ -f "${extra_script}" ]]; then
-        bootstrap_info "Running cachyos-extra.sh for additional tools..."
+        bootstrap_info "Running %s for additional tools..." "$(basename "${extra_script}")"
         if [[ "${DRY_RUN}" == "true" ]]; then
-          bootstrap_info "[DRY RUN] Would source %s" "${extra_script}"
+          bootstrap_info "[DRY RUN] Would run %s" "${extra_script}"
         else
-          # shellcheck source=../packages/cachyos-extra.sh
-          source "${extra_script}"
+          # Run in a subshell, not sourced: these scripts set their own `set -e`
+          # and define helpers like command_exists(). Sourcing let a single
+          # failed extra abort the whole bootstrap and leaked its functions
+          # into every later phase.
+          # shellcheck disable=SC1090
+          (source "${extra_script}") \
+            || bootstrap_warn "%s reported errors — continuing" "$(basename "${extra_script}")"
         fi
       fi
       ;;
@@ -765,20 +1034,37 @@ setup_zsh() {
   if [[ "${OS}" == "macos" ]]; then
     zsh_path="${HOMEBREW_PREFIX}/bin/zsh"
   else
-    zsh_path="$(command -v zsh)"
+    # `command -v` exits non-zero when zsh is absent, which under `set -e` took
+    # the whole script down at this assignment — no message, no phases 10-12.
+    zsh_path="$(command -v zsh || true)"
+    if [[ -z "${zsh_path}" ]]; then
+      bootstrap_warn "zsh not found on PATH — skipping shell setup"
+      case "${PKG_MGR}" in
+        apt) bootstrap_warn "Install it with: sudo apt-get install -y zsh" ;;
+        pacman) bootstrap_warn "Install it with: sudo pacman -S --needed zsh" ;;
+      esac
+      return 0
+    fi
   fi
+
+  prime_sudo "registering zsh as a login shell"
 
   # Add zsh to /etc/shells if missing
   if ! grep -Fq "${zsh_path}" /etc/shells 2>/dev/null; then
     run_cmd "echo '${zsh_path}' | sudo tee -a /etc/shells" \
-      "Add Zsh to /etc/shells"
+      "Add Zsh to /etc/shells" \
+      || bootstrap_warn "Could not add %s to /etc/shells" "${zsh_path}"
   else
     bootstrap_info "Zsh already in /etc/shells"
   fi
 
-  # Set as default shell
+  # Set as default shell. chsh fails for accounts managed outside /etc/passwd
+  # (LDAP, SSSD, some cloud images) — a warning there, not a dead bootstrap.
   if [[ "${SHELL}" != "${zsh_path}" ]]; then
-    run_cmd "chsh -s '${zsh_path}'" "Set Zsh as default shell"
+    run_cmd "chsh -s '${zsh_path}'" "Set Zsh as default shell" || {
+      bootstrap_warn "Could not change the default shell automatically."
+      bootstrap_warn "Set it manually with: chsh -s %s" "${zsh_path}"
+    }
   else
     bootstrap_info "Zsh already the default shell"
   fi
@@ -823,6 +1109,13 @@ install_gstack() {
         if [[ "${DRY_RUN}" == "true" ]]; then
           bootstrap_info "[DRY RUN] Would install bun via https://bun.sh/install"
         else
+          # bun's installer unpacks a zip; without unzip it fails with a bare
+          # "unzip is required to install bun".
+          if ! command -v unzip >/dev/null 2>&1; then
+            bootstrap_info "Installing unzip (required by the bun installer)..."
+            prime_sudo "installing unzip"
+            install_package_list unzip
+          fi
           bootstrap_info "Installing bun (gstack runtime)..."
           curl -fsSL https://bun.sh/install | bash || bootstrap_warn "bun install script failed"
         fi
@@ -882,8 +1175,48 @@ CLAUDE_PLUGIN_ENTRIES=(
   "last30days-skill:mvanhorn/last30days-skill:last30days@last30days-skill"
 )
 
+# macOS gets the claude CLI from the Brewfile (cask "claude-code@latest").
+# Linux had no install path at all — neither apt.txt, pacman.txt, nor the
+# extra scripts provide it — so Phase 11 could only ever warn and skip.
+install_claude_cli() {
+  command -v claude >/dev/null 2>&1 && return 0
+  [[ -x "${HOME}/.local/bin/claude" ]] && {
+    export PATH="${HOME}/.local/bin:${PATH}"
+    return 0
+  }
+
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    bootstrap_info "[DRY RUN] Would install the claude CLI"
+    return 1
+  fi
+
+  bootstrap_info "Installing the Claude Code CLI..."
+  if curl -fsSL https://claude.ai/install.sh | bash; then
+    # The native installer drops the binary in ~/.local/bin, which is not yet
+    # on PATH in a non-login bootstrap shell.
+    case ":${PATH}:" in
+      *":${HOME}/.local/bin:"*) ;;
+      *) export PATH="${HOME}/.local/bin:${PATH}" ;;
+    esac
+  elif command -v npm >/dev/null 2>&1; then
+    bootstrap_warn "Native installer failed — falling back to npm"
+    npm install -g @anthropic-ai/claude-code \
+      || bootstrap_warn "npm install of @anthropic-ai/claude-code failed"
+  else
+    bootstrap_warn "Could not install the claude CLI (no npm available as a fallback)"
+  fi
+
+  command -v claude >/dev/null 2>&1
+}
+
 install_claude_plugins() {
   bootstrap_echo "Phase 11: Claude Code plugins"
+
+  if ! command -v claude &>/dev/null; then
+    if [[ "${OS}" == "linux" ]]; then
+      install_claude_cli || true
+    fi
+  fi
 
   if ! command -v claude &>/dev/null; then
     bootstrap_warn "claude CLI not found on PATH — skipping plugin installation"
@@ -911,16 +1244,16 @@ install_claude_plugins() {
     else
       # A single bad plugin should not abort the phase, or Phase 12 never runs.
       run_cmd "claude plugin marketplace add '${repo}'" \
-        "Register Claude Code marketplace ${market_name}" ||
-        bootstrap_warn "Could not add marketplace %s from %s" "${market_name}" "${repo}"
+        "Register Claude Code marketplace ${market_name}" \
+        || bootstrap_warn "Could not add marketplace %s from %s" "${market_name}" "${repo}"
     fi
 
     if grep -Fq "${plugin_spec}" <<<"${existing_plugins}"; then
       bootstrap_info "Plugin already installed: %s" "${plugin_spec}"
     else
       run_cmd "claude plugin install '${plugin_spec}' --scope user" \
-        "Install Claude Code plugin ${plugin_spec}" ||
-        bootstrap_warn "Could not install plugin %s — check that it exists in marketplace %s" \
+        "Install Claude Code plugin ${plugin_spec}" \
+        || bootstrap_warn "Could not install plugin %s — check that it exists in marketplace %s" \
           "${plugin_spec}" "${market_name}"
     fi
   done
@@ -964,8 +1297,12 @@ main() {
   install_gstack
   install_claude_plugins
   show_summary
+
+  stop_sudo_keepalive
 }
 
 trap 'bootstrap_error "Script failed at line %s: %s" "$LINENO" "$BASH_COMMAND"' ERR
+# Never leave the background sudo refresher running after the script ends.
+trap 'stop_sudo_keepalive' EXIT
 
 main "$@"
