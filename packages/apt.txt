@@ -40,4 +40,3 @@ bison
 libncurses-dev
 libffi-dev
 libgdbm-dev
-awscli

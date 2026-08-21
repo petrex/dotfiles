@@ -540,7 +540,9 @@ install_packages_minimal() {
       verify_minimal_linux_packages
       ;;
     pacman)
-      local minimal_pacman=(git stow zsh curl unzip base-devel)
+      # setup.sh reads the current hostname in Phase 5. Minimal Arch cloud
+      # images do not ship /usr/bin/hostname; pacman's inetutils provides it.
+      local minimal_pacman=(git stow zsh curl unzip base-devel inetutils)
       bootstrap_info "Installing minimal pacman packages: %s" "${minimal_pacman[*]}"
       prime_sudo "installing base packages"
       install_package_list "${minimal_pacman[@]}"
@@ -770,7 +772,8 @@ setup_asdf_shell() {
   # ~/.local/bin, and the bin/ of a v0.15 git clone.
   local dir
   for dir in "${ASDF_DATA_DIR}/shims" "${HOME}/.local/bin" "${HOME}/.asdf/bin"; do
-    [[ -d "${dir}" ]] || continue
+    # The shims directory is created only after the first runtime install.
+    # Add it before that happens so gem/npm resolve in the following phase.
     case ":${PATH}:" in
       *":${dir}:"*) ;;
       *) export PATH="${dir}:${PATH}" ;;
@@ -808,7 +811,10 @@ install_asdf_languages() {
             ;;
           pacman)
             bootstrap_info "Installing asdf build dependencies for Arch/CachyOS..."
-            install_package_list autoconf bison openssl readline zlib \
+            # zlib headers are part of every Arch base install. CachyOS swaps
+            # zlib for the ABI-compatible zlib-ng-compat, so explicitly asking
+            # pacman for zlib would create a package conflict there.
+            install_package_list autoconf bison openssl readline \
               ncurses libffi gdbm libyaml
             ;;
         esac

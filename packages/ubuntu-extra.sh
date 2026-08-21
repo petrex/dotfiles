@@ -233,7 +233,9 @@ install_atuin() {
   fi
 
   ubuntu_extra_info "Installing atuin (shell history)..."
-  curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh \
+  # The installer probes /dev/tty under `set -e`; that exits early when this
+  # bootstrap is run without a TTY. Explicitly select its supported CI mode.
+  curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh -s -- --non-interactive \
     || ubuntu_extra_warn "atuin install script failed"
 }
 
@@ -248,6 +250,37 @@ install_rust() {
   ubuntu_extra_info "Installing Rust via rustup..."
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --no-modify-path || ubuntu_extra_warn "rustup install failed"
+}
+
+install_awscli() {
+  if command_exists aws; then
+    ubuntu_extra_info "AWS CLI already installed"
+    return
+  fi
+
+  local arch asset_url tmp_dir
+  arch="$(uname -m)"
+  case "${arch}" in
+    x86_64 | amd64) asset_url="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" ;;
+    aarch64 | arm64) asset_url="https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" ;;
+    *)
+      ubuntu_extra_warn "No AWS CLI v2 installer for ${arch} — skipping"
+      return 0
+      ;;
+  esac
+
+  # awscli has no installation candidate on current Ubuntu 24.04 images.
+  # Use Amazon's architecture-specific v2 bundle instead.
+  tmp_dir="$(mktemp -d)"
+  ubuntu_extra_info "Installing AWS CLI v2 (${arch})..."
+  if curl -fsSL "${asset_url}" -o "${tmp_dir}/awscliv2.zip" \
+    && unzip -q "${tmp_dir}/awscliv2.zip" -d "${tmp_dir}" \
+    && sudo "${tmp_dir}/aws/install"; then
+    ubuntu_extra_info "AWS CLI installed"
+  else
+    ubuntu_extra_warn "AWS CLI v2 installation failed"
+  fi
+  rm -rf "${tmp_dir}"
 }
 
 install_tealdeer() {
@@ -303,6 +336,7 @@ install_zsh_abbr
 # Brewfile parity
 install_atuin
 install_rust
+install_awscli
 install_tealdeer
 install_hadolint
 install_herdr

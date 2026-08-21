@@ -45,11 +45,11 @@ zsh
 unzip
 libyaml
 openssh
+inetutils
 autoconf
 bison
 ncurses
 libffi
 gdbm
-zlib
 atuin
 aws-cli
