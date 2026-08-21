@@ -783,16 +783,82 @@ setup_zsh() {
     bootstrap_info "Zsh already the default shell"
   fi
 
-  # Install Zap plugin manager
-  if [[ -d "${HOME}/.local/share/zap" ]]; then
-    bootstrap_info "Zap already installed"
-  else
-    if [[ "${DRY_RUN}" == "true" ]]; then
-      bootstrap_info "[DRY RUN] Would install Zap (Zsh plugin manager) with --keep flag"
-    else
-      bootstrap_info "Installing Zap (Zsh plugin manager)..."
-      zsh <(curl -fsSL https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh) --branch release-v1 --keep
+  install_zap
+}
+
+# Install Zap, the Zsh plugin manager — https://www.zapzsh.com
+#
+# zsh/.config/zsh/plugins.zsh sources ${XDG_DATA_HOME:-~/.local/share}/zap and
+# declares the plugin list, so without Zap the configured shell starts with no
+# plugins at all.
+#
+# The previous one-liner had two failure modes:
+#
+#   zsh <(curl -fsSL .../install.zsh) --branch release-v1 --keep
+#
+#   1. A failed download makes the process substitution an empty file, and zsh
+#      runs it and exits 0 — bootstrap recorded a success and moved on while
+#      nothing had been installed. Same trap as the Homebrew installer in
+#      Phase 3.
+#   2. A genuine installer failure tripped `set -e` and killed the run, so
+#      phases 10-12 never executed.
+#
+# Download and run as separate, individually checked steps, then confirm the
+# result on disk.
+ZAP_INSTALL_URL="https://raw.githubusercontent.com/zap-zsh/zap/master/install.zsh"
+ZAP_BRANCH="release-v1"
+
+install_zap() {
+  # Honour XDG_DATA_HOME: shared/environment.sh sets it, but bootstrap runs
+  # before any shell config is loaded, so fall back to the documented default.
+  local zap_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/zap"
+
+  if [[ -d "${zap_dir}" ]]; then
+    bootstrap_info "Zap already installed at %s" "${zap_dir}"
+    return 0
+  fi
+
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    bootstrap_info "[DRY RUN] Would install Zap (Zsh plugin manager) to %s" "${zap_dir}"
+    return 0
+  fi
+
+  if ! command -v zsh >/dev/null 2>&1; then
+    bootstrap_warn "zsh not available — skipping Zap installation"
+    return 0
+  fi
+
+  local installer
+  installer="$(mktemp)"
+  bootstrap_info "Installing Zap (Zsh plugin manager)..."
+
+  if ! curl -fsSL "${ZAP_INSTALL_URL}" -o "${installer}"; then
+    rm -f "${installer}"
+    bootstrap_warn "Could not download the Zap installer from %s" "${ZAP_INSTALL_URL}"
+    bootstrap_warn "Install it later from https://www.zapzsh.com"
+    return 0
+  fi
+
+  # --keep preserves the existing .zshrc, which stow has already symlinked.
+  #
+  # The installer's own exit status is not a reliable success signal: it ends
+  # by sourcing ~/.zshrc, so it returns non-zero whenever that file is absent
+  # or any line in it errors — even though Zap installed perfectly. Trust the
+  # directory on disk instead, and keep the exit status only for diagnostics.
+  local installer_status=0
+  zsh "${installer}" --branch "${ZAP_BRANCH}" --keep || installer_status=$?
+  rm -f "${installer}"
+
+  if [[ -d "${zap_dir}" ]]; then
+    bootstrap_info "Zap installed at %s" "${zap_dir}"
+    if [[ "${installer_status}" -ne 0 ]]; then
+      bootstrap_info "  (installer exited %s, typically from sourcing .zshrc — Zap itself is fine)" \
+        "${installer_status}"
     fi
+  else
+    bootstrap_warn "Zap does not appear at %s (installer exited %s)." "${zap_dir}" "${installer_status}"
+    bootstrap_warn "Plugins in zsh/.config/zsh/plugins.zsh will not load."
+    bootstrap_warn "Install it manually: https://www.zapzsh.com"
   fi
 }
 
