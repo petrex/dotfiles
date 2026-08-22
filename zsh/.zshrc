@@ -36,10 +36,6 @@ if [[ -f "$HOME/.zshrc.local" ]]; then
     . "$HOME/.zshrc.local"
 fi
 
-# Configure npm to use asdf's Node for global packages
-if command -v npm >/dev/null; then
-    export npm_config_prefix=$(dirname $(dirname $(which node)))
-fi
 
 # History configuration
 export HISTSIZE=1000000000

@@ -58,10 +58,6 @@ else if test -f /opt/homebrew/opt/asdf/libexec/asdf.fish
     source /opt/homebrew/opt/asdf/libexec/asdf.fish
 end
 
-# Configure npm to use asdf's Node for global packages
-if command -v npm >/dev/null
-    set -gx npm_config_prefix (dirname (dirname (which node)))
-end
 
 # Load 1Password CLI plugins if available
 set OP_PLUGINS_FILE "$HOME/.config/op/plugins.sh"
