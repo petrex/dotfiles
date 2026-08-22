@@ -1,0 +1,17 @@
+# apt-gui.txt — Desktop apps and fonts available directly from the Ubuntu repos.
+#
+# Linux counterparts to the `cask` section of brew/Brewfile. Kept separate from
+# apt.txt so a headless box can skip all of it with `bootstrap.sh --skip-gui`.
+#
+# Ubuntu packages far less of this than Arch does. Everything absent here —
+# ghostty, VS Code, Zoom, Tailscale, Moonlight and every Nerd Font — comes from
+# a vendor repo or an upstream release in ubuntu-extra.sh.
+
+# --- Applications ---
+rclone  # cask "google-drive" — Google has no Linux client; rclone syncs Drive
+
+# --- Fonts ---
+fonts-cascadia-code   # cask "font-cascadia-code"
+fonts-firacode        # cask "font-fira-code"
+fonts-hack            # cask "font-hack"
+fonts-jetbrains-mono  # cask "font-jetbrains-mono"

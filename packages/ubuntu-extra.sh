@@ -315,6 +315,253 @@ install_zsh_abbr() {
 }
 
 # ---------------------------------------------------------------------------
+# Desktop apps and fonts — the Brewfile `cask` section
+#
+# Ubuntu packages almost none of this. Only rclone and four plain font families
+# come from apt (packages/apt-gui.txt); everything below needs a vendor apt
+# repo or an upstream release. Gated on SKIP_GUI, exported by bootstrap.sh.
+# ---------------------------------------------------------------------------
+
+# Resolve one asset's download URL from a repo's latest release.
+#
+# Asset names cannot always be derived from the tag: ghostty-ubuntu tags
+# `1.3.1-0-ppa2` but names the file `...1.3.1-0.ppa2...`, and source-code-pro's
+# tag contains slashes. Ask the API for the URL instead of building it.
+release_asset_url() {
+  local repo="$1" pattern="$2"
+  curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null \
+    | grep -oE '"browser_download_url":[[:space:]]*"[^"]+"' \
+    | sed -E 's/.*"(https:[^"]+)"$/\1/' \
+    | grep -E "${pattern}" | head -1
+}
+
+# Read one field out of /etc/os-release without leaking the rest into the shell.
+os_release_field() {
+  (
+    # shellcheck disable=SC1091
+    . /etc/os-release 2>/dev/null || exit 0
+    printf "%s" "${!1:-}"
+  )
+}
+
+install_deb_url() {
+  local name="$1" url="$2" tmp
+  tmp="$(mktemp -d)"
+
+  ubuntu_extra_info "Installing ${name}..."
+  if curl -fsSL "${url}" -o "${tmp}/${name}.deb" \
+    && sudo -E apt-get install -y "${tmp}/${name}.deb"; then
+    ubuntu_extra_info "${name} installed"
+  else
+    ubuntu_extra_warn "Could not install ${name} from ${url}"
+  fi
+  rm -rf "${tmp}"
+}
+
+install_vscode() {
+  if command_exists code; then
+    ubuntu_extra_info "VS Code already installed"
+    return
+  fi
+
+  ubuntu_extra_info "Installing VS Code via the Microsoft apt repository..."
+  sudo mkdir -p /etc/apt/keyrings
+  curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+    | gpg --dearmor | sudo tee /etc/apt/keyrings/packages.microsoft.gpg >/dev/null
+  sudo chmod 644 /etc/apt/keyrings/packages.microsoft.gpg
+  echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" \
+    | sudo tee /etc/apt/sources.list.d/vscode.list >/dev/null
+  sudo -E apt-get update
+  sudo -E apt-get install -y code || ubuntu_extra_warn "Could not install code"
+}
+
+install_ghostty() {
+  if command_exists ghostty; then
+    ubuntu_extra_info "Ghostty already installed"
+    return
+  fi
+
+  # Ghostty ships no official .deb. mkasberg/ghostty-ubuntu builds one per
+  # Ubuntu release; a deb built for a different release can pull in the wrong
+  # glibc, so only take an exact VERSION_ID match.
+  local arch version url
+  arch="$(dpkg --print-architecture)"
+  version="$(os_release_field VERSION_ID)"
+  url="$(release_asset_url mkasberg/ghostty-ubuntu "_${arch}_${version}\.deb$")"
+
+  if [[ -z "${url}" ]]; then
+    ubuntu_extra_warn "No Ghostty build for Ubuntu ${version} ${arch}"
+    ubuntu_extra_warn "  Check https://github.com/mkasberg/ghostty-ubuntu/releases"
+    return
+  fi
+
+  install_deb_url ghostty "${url}"
+}
+
+install_zoom() {
+  if command_exists zoom; then
+    ubuntu_extra_info "Zoom already installed"
+    return
+  fi
+
+  # Zoom publishes an amd64 .deb only — there is no arm64 Linux client.
+  local arch
+  arch="$(dpkg --print-architecture)"
+  if [[ "${arch}" != "amd64" ]]; then
+    ubuntu_extra_warn "Zoom has no ${arch} Linux client — skipping"
+    return
+  fi
+
+  install_deb_url zoom "https://zoom.us/client/latest/zoom_amd64.deb"
+}
+
+install_tailscale() {
+  if command_exists tailscale; then
+    ubuntu_extra_info "Tailscale already installed"
+    return
+  fi
+
+  local codename
+  codename="$(os_release_field VERSION_CODENAME)"
+  if [[ -z "${codename}" ]]; then
+    ubuntu_extra_warn "Could not determine the Ubuntu codename — skipping Tailscale"
+    return
+  fi
+
+  ubuntu_extra_info "Installing Tailscale via the vendor apt repository..."
+  if ! curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/${codename}.noarmor.gpg" \
+    | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null; then
+    ubuntu_extra_warn "No Tailscale repository for ${codename} — skipping"
+    return
+  fi
+  curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/${codename}.tailscale-keyring.list" \
+    | sudo tee /etc/apt/sources.list.d/tailscale.list >/dev/null
+  sudo -E apt-get update
+  sudo -E apt-get install -y tailscale || ubuntu_extra_warn "Could not install tailscale"
+}
+
+install_moonlight() {
+  if command_exists moonlight; then
+    ubuntu_extra_info "Moonlight already installed"
+    return
+  fi
+
+  # Upstream ships an AppImage (x86_64 only) and a Flatpak. The AppImage keeps
+  # this dependency-free; adding Flatpak for one app is not worth it.
+  local arch url
+  arch="$(uname -m)"
+  if [[ "${arch}" != "x86_64" ]]; then
+    ubuntu_extra_warn "Moonlight publishes no ${arch} AppImage — skipping"
+    return
+  fi
+
+  url="$(release_asset_url moonlight-stream/moonlight-qt 'x86_64\.AppImage$')"
+  if [[ -z "${url}" ]]; then
+    ubuntu_extra_warn "Could not resolve the latest Moonlight AppImage — skipping"
+    return
+  fi
+
+  ubuntu_extra_info "Installing Moonlight (AppImage)..."
+  if curl -fsSL "${url}" -o /tmp/moonlight.AppImage; then
+    sudo install -m 755 /tmp/moonlight.AppImage /usr/local/bin/moonlight \
+      || ubuntu_extra_warn "Could not install moonlight to /usr/local/bin"
+  else
+    ubuntu_extra_warn "Could not download the Moonlight AppImage"
+  fi
+  rm -f /tmp/moonlight.AppImage
+}
+
+# ---------------------------------------------------------------------------
+# Fonts
+#
+# apt covers the plain Cascadia, Fira Code, Hack and JetBrains Mono families
+# (see packages/apt-gui.txt). Every Nerd Font patch, plus Monaspace and Source
+# Code Pro, has to come from upstream. Installed per-user under
+# ~/.local/share/fonts so no sudo is involved.
+# ---------------------------------------------------------------------------
+
+FONTS_INSTALLED=false
+
+# Usage: install_font_zip <dir-name> <owner/repo> <asset-regex> [size-note]
+install_font_zip() {
+  local name="$1" repo="$2" pattern="$3" note="${4:-}"
+  local dest="${HOME}/.local/share/fonts/${name}"
+  local url tmp
+
+  if [[ -d "${dest}" ]] && [[ -n "$(ls -A "${dest}" 2>/dev/null)" ]]; then
+    ubuntu_extra_info "${name} font already installed"
+    return 0
+  fi
+
+  url="$(release_asset_url "${repo}" "${pattern}")"
+  if [[ -z "${url}" ]]; then
+    ubuntu_extra_warn "Could not resolve the ${name} font download — skipping"
+    return 0
+  fi
+
+  ubuntu_extra_info "Installing the ${name} font${note}..."
+  tmp="$(mktemp -d)"
+  if curl -fsSL "${url}" -o "${tmp}/font.zip" \
+    && unzip -qo "${tmp}/font.zip" -d "${tmp}/out"; then
+    mkdir -p "${dest}"
+    find "${tmp}/out" -type f \( -iname '*.ttf' -o -iname '*.otf' \) \
+      -exec cp {} "${dest}/" \;
+    FONTS_INSTALLED=true
+  else
+    ubuntu_extra_warn "Could not install the ${name} font"
+  fi
+  rm -rf "${tmp}"
+}
+
+install_fonts() {
+  if ! command_exists unzip; then
+    ubuntu_extra_warn "unzip not available — skipping the upstream fonts"
+    return
+  fi
+
+  # Nerd Font patched families. The archives are large because each carries
+  # every weight and both the Mono and Propo variants; the sizes are called out
+  # so a multi-minute download does not look like a hang.
+  install_font_zip CascadiaCodeNF ryanoasis/nerd-fonts '/CascadiaCode\.zip$' ' (~57 MB)'
+  install_font_zip FiraCodeNF ryanoasis/nerd-fonts '/FiraCode\.zip$' ' (~29 MB)'
+  install_font_zip HackNF ryanoasis/nerd-fonts '/Hack\.zip$' ' (~19 MB)'
+  install_font_zip JetBrainsMonoNF ryanoasis/nerd-fonts '/JetBrainsMono\.zip$' ' (~134 MB)'
+  install_font_zip MonaspiceNF ryanoasis/nerd-fonts '/Monaspace\.zip$' ' (~274 MB)'
+  install_font_zip SymbolsNF ryanoasis/nerd-fonts '/NerdFontsSymbolsOnly\.zip$'
+
+  # Unpatched families apt does not carry at all.
+  install_font_zip Monaspace githubnext/monaspace '/monaspace-static-.*\.zip$' ' (~56 MB)'
+  install_font_zip SourceCodePro adobe-fonts/source-code-pro '/TTF-source-code-pro.*\.zip$'
+
+  if [[ "${FONTS_INSTALLED}" == "true" ]] && command_exists fc-cache; then
+    ubuntu_extra_info "Rebuilding the font cache..."
+    fc-cache -f "${HOME}/.local/share/fonts" >/dev/null 2>&1 \
+      || ubuntu_extra_warn "fc-cache failed — new fonts may need a re-login"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# CLI agents distributed as macOS casks
+# ---------------------------------------------------------------------------
+
+install_codex() {
+  if command_exists codex; then
+    ubuntu_extra_info "Codex CLI already installed"
+    return
+  fi
+
+  # cask "codex" on macOS. Use the npm channel OpenAI publishes; Phase 6 has
+  # already provided node via asdf.
+  if ! command_exists npm; then
+    ubuntu_extra_warn "npm not available — skipping the Codex CLI"
+    return
+  fi
+
+  ubuntu_extra_info "Installing the Codex CLI via npm..."
+  npm install -g @openai/codex || ubuntu_extra_warn "Codex CLI install failed"
+}
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -340,5 +587,19 @@ install_awscli
 install_tealdeer
 install_hadolint
 install_herdr
+install_codex
+
+# Desktop apps and fonts. SKIP_GUI is exported by bootstrap.sh Phase 8; default
+# to installing them when this script is run on its own.
+if [[ "${SKIP_GUI:-false}" == "true" ]]; then
+  ubuntu_extra_info "Skipping desktop apps and fonts (--skip-gui)"
+else
+  install_vscode
+  install_ghostty
+  install_zoom
+  install_tailscale
+  install_moonlight
+  install_fonts
+fi
 
 ubuntu_extra_info "Ubuntu extra packages complete"

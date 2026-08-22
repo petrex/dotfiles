@@ -122,7 +122,8 @@ install_aur_package() {
     cachyos_extra_info "Installing ${pkg} via paru..."
     paru -S --needed --noconfirm "${pkg}"
   else
-    cachyos_extra_info "No AUR helper found — skipping ${pkg}"
+    cachyos_extra_warn "No AUR helper (yay/paru) found — skipping ${pkg}"
+    return 1
   fi
 }
 
@@ -137,6 +138,64 @@ install_uv() {
 }
 
 # ---------------------------------------------------------------------------
+# Desktop apps — the Brewfile `cask` entries that the official repos lack
+#
+# ghostty, tailscale, moonlight-qt, rclone and every font come from
+# packages/pacman-gui.txt. Only these two need the AUR.
+# ---------------------------------------------------------------------------
+
+install_vscode() {
+  if command_exists code; then
+    cachyos_extra_info "VS Code already installed"
+    return
+  fi
+
+  # The Brewfile installs Microsoft's build, which lives in the AUR. The `code`
+  # package in extra is Code - OSS: same editor, but no Marketplace, no
+  # Settings Sync and no telemetry-bearing MS branding. Prefer the real thing,
+  # fall back to OSS rather than leaving the machine with no editor.
+  if install_aur_package visual-studio-code-bin; then
+    return
+  fi
+
+  cachyos_extra_warn "Falling back to Code - OSS (no Marketplace or Settings Sync)"
+  sudo pacman -S --needed --noconfirm code \
+    || cachyos_extra_warn "Could not install code"
+}
+
+install_zoom() {
+  if command_exists zoom; then
+    cachyos_extra_info "Zoom already installed"
+    return
+  fi
+
+  # AUR only — Zoom ships no Arch package and no official repo.
+  install_aur_package zoom \
+    || cachyos_extra_warn "Install Zoom manually: https://zoom.us/download?os=linux"
+}
+
+# ---------------------------------------------------------------------------
+# CLI agents distributed as macOS casks
+# ---------------------------------------------------------------------------
+
+install_codex() {
+  if command_exists codex; then
+    cachyos_extra_info "Codex CLI already installed"
+    return
+  fi
+
+  # cask "codex" on macOS. The AUR package has almost no adoption, so use the
+  # npm channel OpenAI publishes; Phase 6 has already provided node via asdf.
+  if ! command_exists npm; then
+    cachyos_extra_warn "npm not available — skipping the Codex CLI"
+    return
+  fi
+
+  cachyos_extra_info "Installing the Codex CLI via npm..."
+  npm install -g @openai/codex || cachyos_extra_warn "Codex CLI install failed"
+}
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -148,5 +207,15 @@ install_uv
 # Brewfile parity — not in the Arch repos
 install_hadolint
 install_herdr
+install_codex
+
+# Desktop apps. SKIP_GUI is exported by bootstrap.sh Phase 8; default to
+# installing them when this script is run on its own.
+if [[ "${SKIP_GUI:-false}" == "true" ]]; then
+  cachyos_extra_info "Skipping desktop apps (--skip-gui)"
+else
+  install_vscode
+  install_zoom
+fi
 
 cachyos_extra_info "CachyOS extra packages complete"
