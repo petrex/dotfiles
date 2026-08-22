@@ -1,0 +1,27 @@
+# pacman-gui.txt — Desktop apps and fonts from the official Arch repos.
+#
+# Linux counterparts to the `cask` section of brew/Brewfile. Kept separate from
+# pacman.txt so a headless box can skip all of it with `bootstrap.sh --skip-gui`.
+#
+# Every name here was checked against the official repos; anything that only
+# exists in the AUR is handled by cachyos-extra.sh instead.
+
+# --- Applications ---
+ghostty       # cask "ghostty"
+tailscale     # cask "tailscale-app" (CLI + daemon; no tray app on Linux)
+moonlight-qt  # cask "moonlight"
+rclone        # cask "google-drive" — Google has no Linux client; rclone syncs Drive
+
+# --- Fonts ---
+ttf-cascadia-code            # cask "font-cascadia-code"
+ttf-cascadia-code-nerd       # cask "font-cascadia-code-nf"
+ttf-fira-code                # cask "font-fira-code"
+ttf-firacode-nerd            # cask "font-fira-code-nerd-font"
+ttf-hack                     # cask "font-hack"
+ttf-hack-nerd                # cask "font-hack-nerd-font"
+ttf-jetbrains-mono           # cask "font-jetbrains-mono"
+ttf-jetbrains-mono-nerd      # cask "font-jetbrains-mono-nerd-font"
+otf-monaspace-nerd           # cask "font-monaspace" + "font-monaspice-nerd-font"
+adobe-source-code-pro-fonts  # cask "font-source-code-pro"
+ttf-nerd-fonts-symbols       # cask "font-symbols-only-nerd-font"
+ttf-nerd-fonts-symbols-mono  # ditto (the Mono variant the cask also installs)

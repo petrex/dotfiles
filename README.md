@@ -33,6 +33,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scrip
 # Skip the lengthy package install (all platforms)
 ./scripts/bootstrap.sh --skip-packages
 
+# CLI tools only — no desktop apps or fonts (headless servers)
+./scripts/bootstrap.sh --skip-gui
+
 # All flags
 ./scripts/bootstrap.sh --help
 ```
@@ -153,6 +156,24 @@ CI runs automatically on push via GitHub Actions (tests, validation, performance
 - **Ubuntu/Debian** — apt + PPAs via `packages/apt.txt` and `packages/ubuntu-extra.sh`
 - **CachyOS/Arch** — pacman via `packages/pacman.txt` and `packages/cachyos-extra.sh`
 
+Desktop apps and fonts — the Linux counterpart to the Brewfile's `cask` section —
+live in `packages/apt-gui.txt` and `packages/pacman-gui.txt`, with anything the
+distro does not package handled by the `*-extra.sh` scripts. Skip all of it on a
+headless box with `--skip-gui`.
+
+| macOS cask | Ubuntu | Arch |
+|---|---|---|
+| `ghostty` | `.deb` from [ghostty-ubuntu][ghostty-ubuntu] | `ghostty` (extra) |
+| `visual-studio-code` | Microsoft apt repo | `visual-studio-code-bin` (AUR), else `code` |
+| `zoom` | vendor `.deb` (amd64 only) | `zoom` (AUR) |
+| `tailscale-app` | vendor apt repo | `tailscale` (extra) |
+| `moonlight` | AppImage (x86_64 only) | `moonlight-qt` (extra) |
+| `google-drive` | `rclone` | `rclone` |
+| `claude-code@latest` | official install script | official install script |
+| `codex` | `npm i -g @openai/codex` | `npm i -g @openai/codex` |
+| fonts | apt + Nerd Fonts releases | `ttf-*` / `otf-*` (extra) |
+| `istat-menus`, `iterm2`, `onyx` | — macOS-only; `btop` and `ghostty` cover the first two | |
+
 Shell configs include cross-platform guards. `bootstrap.sh` detects the OS and package manager automatically.
 
 ## Neovim
@@ -161,7 +182,8 @@ Uses the [LazyVim][lazyvim] distribution. Custom plugins and overrides live in `
 
 ## Fonts
 
-Installed via Homebrew Cask Fonts:
+On macOS via Homebrew Cask Fonts; on Linux from the distro packages or the
+upstream [Nerd Fonts][nerd-fonts] releases (see `--skip-gui` to opt out):
 
 - [Cascadia Code][cascadia-code]
 - [Fira Code][fira-code]
@@ -193,11 +215,13 @@ Originally forked from [joshukraine/dotfiles](https://github.com/joshukraine/dot
 [fira-code]: https://github.com/tonsky/FiraCode
 [fish]: http://fishshell.com/
 [ghostty]: https://ghostty.org/
+[ghostty-ubuntu]: https://github.com/mkasberg/ghostty-ubuntu
 [gnu-stow]: https://www.gnu.org/software/stow/
 [hack]: https://sourcefoundry.org/hack
 [jetbrains-mono]: https://www.jetbrains.com/lp/mono/
 [lazyvim]: https://www.lazyvim.org/
 [monaspace]: https://monaspace.githubnext.com
+[nerd-fonts]: https://github.com/ryanoasis/nerd-fonts
 [neovim]: https://neovim.io/
 [starship]: https://starship.rs/
 [symbols-nerd-font-mono]: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/NerdFontsSymbolsOnly.zip

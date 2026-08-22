@@ -20,6 +20,7 @@ set -Ee
 # Options:
 #   --dry-run            Show what would be done without making changes
 #   --skip-packages      Skip the full Phase 8 package install (all platforms)
+#   --skip-gui           Skip desktop apps and fonts (headless servers)
 #   --skip-brew-bundle   Alias of --skip-packages, kept for compatibility
 #   --help               Show this help message
 #
@@ -40,6 +41,9 @@ DOTFILES_BRANCH="master"
 DRY_RUN=false
 SKIP_BREW_BUNDLE=false
 SKIP_PACKAGES=false
+# Desktop apps and fonts (the Brewfile's `cask` section). Exported in Phase 8
+# so the per-distro extra scripts gate their GUI installs on the same flag.
+SKIP_GUI=false
 
 # Platform globals — set in preflight()
 OS=""      # "macos" | "linux"
@@ -159,6 +163,7 @@ Supported platforms:
 Options:
   --dry-run            Show what would be done without making changes
   --skip-packages      Skip the full package install in Phase 8 (all platforms)
+  --skip-gui           Skip desktop apps and fonts — useful on a headless server
   --skip-brew-bundle   Alias of --skip-packages, kept for compatibility
   --help               Show this help message
 
@@ -167,6 +172,7 @@ Examples:
   $0                      # Full bootstrap
   $0 --dry-run            # Preview all phases
   $0 --skip-packages      # Skip the lengthy Phase 8 package install
+  $0 --skip-gui           # CLI tools only — no desktop apps or fonts
 EOF
 }
 
@@ -181,6 +187,10 @@ parse_args() {
         # Cross-platform: skips Phase 8 on every platform.
         SKIP_PACKAGES=true
         SKIP_BREW_BUNDLE=true
+        shift
+        ;;
+      --skip-gui)
+        SKIP_GUI=true
         shift
         ;;
       --skip-brew-bundle)
@@ -962,6 +972,11 @@ install_packages_full() {
         return
       fi
 
+      if [[ "${SKIP_GUI}" == "true" ]]; then
+        bootstrap_warn "--skip-gui does not apply on macOS: brew bundle installs the"
+        bootstrap_warn "Brewfile as a unit. Comment out the casks, or use --skip-packages."
+      fi
+
       trust_brewfile_taps "${HOME}/Brewfile"
 
       run_cmd "brew bundle install --file='${HOME}/Brewfile'" \
@@ -973,12 +988,14 @@ install_packages_full() {
         return
       fi
 
-      local pkg_file extra_script
+      local pkg_file gui_file extra_script
       if [[ "${PKG_MGR}" == "apt" ]]; then
         pkg_file="${DOTFILES_DIR}/packages/apt.txt"
+        gui_file="${DOTFILES_DIR}/packages/apt-gui.txt"
         extra_script="${DOTFILES_DIR}/packages/ubuntu-extra.sh"
       else
         pkg_file="${DOTFILES_DIR}/packages/pacman.txt"
+        gui_file="${DOTFILES_DIR}/packages/pacman-gui.txt"
         extra_script="${DOTFILES_DIR}/packages/cachyos-extra.sh"
       fi
 
@@ -1004,7 +1021,25 @@ install_packages_full() {
       done < <(read_package_list "${pkg_file}")
       install_package_list "${pkgs[@]}"
 
+      # Desktop apps and fonts — the Linux side of the Brewfile's `cask` list.
+      # Separate file so a headless box can drop all of it with --skip-gui.
+      if [[ "${SKIP_GUI}" == "true" ]]; then
+        bootstrap_info "Skipping desktop apps and fonts (--skip-gui)"
+      elif [[ ! -f "${gui_file}" ]]; then
+        bootstrap_warn "%s not found — skipping desktop apps" "${gui_file}"
+      else
+        bootstrap_info "Installing desktop apps and fonts from %s..." "${gui_file}"
+        local -a gui_pkgs=()
+        while IFS= read -r pkg; do
+          gui_pkgs+=("${pkg}")
+        done < <(read_package_list "${gui_file}")
+        install_package_list "${gui_pkgs[@]}"
+      fi
+
       # Extra tools: PPAs and binary installs on Ubuntu, AUR on Arch.
+      # SKIP_GUI reaches them through the environment, not a positional arg,
+      # so they stay runnable standalone.
+      export SKIP_GUI
       if [[ -f "${extra_script}" ]]; then
         bootstrap_info "Running %s for additional tools..." "$(basename "${extra_script}")"
         if [[ "${DRY_RUN}" == "true" ]]; then
