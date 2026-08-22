@@ -558,7 +558,22 @@ install_codex() {
   fi
 
   ubuntu_extra_info "Installing the Codex CLI via npm..."
-  npm install -g @openai/codex || ubuntu_extra_warn "Codex CLI install failed"
+  if ! npm install -g @openai/codex; then
+    ubuntu_extra_warn "Codex CLI install failed"
+    return
+  fi
+
+  # asdf's npm shim reshims itself after a global install, so the binary does
+  # land on PATH -- but only once this shell re-scans it.
+  hash -r 2>/dev/null || true
+
+  # Report from what is actually resolvable, not from npm's exit status.
+  if command_exists codex; then
+    ubuntu_extra_info "Codex CLI installed at $(command -v codex)"
+  else
+    ubuntu_extra_warn "Codex CLI installed but is not on PATH."
+    ubuntu_extra_warn "  If node came from asdf, open a new shell or run: asdf reshim nodejs"
+  fi
 }
 
 # ---------------------------------------------------------------------------
