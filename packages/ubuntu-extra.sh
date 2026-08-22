@@ -127,8 +127,55 @@ install_starship() {
     return
   fi
 
-  ubuntu_extra_info "Installing Starship prompt..."
-  curl -sS https://starship.rs/install.sh | sh -s -- --yes
+  # Starship never actually installed here. Its installer escalates whenever
+  # BIN_DIR (default /usr/local/bin) is not writable, and it escalates with
+  # `sudo -v` -- which validates against *every* sudoers rule. Stock Ubuntu
+  # gives every admin `%sudo ALL=(ALL:ALL) ALL`, so `sudo -v` demands a
+  # password even where `sudo -n true` already succeeds. A bootstrap has no
+  # TTY to type it into, so the installer aborted.
+  #
+  # The failure was invisible: bootstrap.sh runs this script as
+  # `(source ...) || warn`, and being on the left of `||` disables `set -e`
+  # for the whole subshell, so the run carried on and reported success.
+  #
+  # Run the installer as root instead, so BIN_DIR is writable and it never
+  # has to escalate at all.
+  local installer bin_dir status=0
+  installer="$(mktemp)"
+
+  # Downloaded, not piped into sh: a piped installer that fails to download
+  # collapses into a no-op that still exits 0.
+  if ! curl -fsSL https://starship.rs/install.sh -o "${installer}"; then
+    ubuntu_extra_warn "Could not download the Starship installer -- skipping"
+    rm -f "${installer}"
+    return
+  fi
+
+  if sudo -n true 2>/dev/null; then
+    bin_dir="/usr/local/bin"
+    ubuntu_extra_info "Installing Starship prompt to ${bin_dir}..."
+    sudo -E sh "${installer}" --yes --bin-dir "${bin_dir}" || status=$?
+  else
+    # No non-interactive sudo. A per-user prefix needs none, and bootstrap.sh
+    # already puts ~/.local/bin on PATH.
+    bin_dir="${HOME}/.local/bin"
+    ubuntu_extra_info "No passwordless sudo -- installing Starship to ${bin_dir}..."
+    mkdir -p "${bin_dir}"
+    sh "${installer}" --yes --bin-dir "${bin_dir}" || status=$?
+    case ":${PATH}:" in
+      *":${bin_dir}:"*) ;;
+      *) export PATH="${bin_dir}:${PATH}" ;;
+    esac
+  fi
+  rm -f "${installer}"
+
+  # Decide by what is on disk, not by the installer's exit status.
+  if command_exists starship; then
+    ubuntu_extra_info "Starship installed at $(command -v starship)"
+  else
+    ubuntu_extra_warn "Starship did not install (installer exited ${status})"
+    ubuntu_extra_warn "  Install it manually: https://starship.rs/guide/"
+  fi
 }
 
 install_lazygit() {
