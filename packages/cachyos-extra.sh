@@ -104,6 +104,62 @@ install_zsh_abbr() {
 }
 
 # ---------------------------------------------------------------------------
+# AUR helper
+#
+# yay (https://github.com/jguer/yay) is not in the Arch repos -- it lives in
+# the AUR itself, so installing it is a small bootstrap problem of its own.
+# CachyOS ships it in the `cachyos` repo, so pacman handles it there; plain
+# Arch has to build it.
+#
+# Without a helper, install_aur_package() can only skip: VS Code silently
+# degrades to Code - OSS and Zoom is not installed at all.
+# ---------------------------------------------------------------------------
+
+install_yay() {
+  if command_exists yay; then
+    cachyos_extra_info "yay already installed"
+    return 0
+  fi
+
+  if command_exists paru; then
+    cachyos_extra_info "paru is already present -- not installing yay as well"
+    return 0
+  fi
+
+  # CachyOS carries yay in its own repo; on plain Arch this simply fails.
+  if sudo pacman -S --needed --noconfirm yay >/dev/null 2>&1; then
+    cachyos_extra_info "yay installed from the distro repos"
+    return 0
+  fi
+
+  # makepkg refuses to run as root by design.
+  if [[ "${EUID}" -eq 0 ]]; then
+    cachyos_extra_warn "Cannot build yay as root -- re-run the bootstrap as a normal user"
+    return 0
+  fi
+
+  if ! command_exists makepkg; then
+    cachyos_extra_warn "makepkg not found (base-devel missing) -- cannot build yay"
+    return 0
+  fi
+
+  # yay-bin ships a prebuilt binary. Building `yay` from source would pull the
+  # entire Go toolchain (makedepends go>=1.24) in for a single tool.
+  local build_dir
+  build_dir="$(mktemp -d)"
+  cachyos_extra_info "Building yay-bin from the AUR..."
+  if git clone -q --depth 1 https://aur.archlinux.org/yay-bin.git "${build_dir}/yay-bin" \
+    && (cd "${build_dir}/yay-bin" && makepkg -si --noconfirm --needed); then
+    cachyos_extra_info "yay installed"
+  else
+    cachyos_extra_warn "Could not build yay -- AUR packages will be skipped"
+  fi
+  rm -rf "${build_dir}"
+
+  return 0
+}
+
+# ---------------------------------------------------------------------------
 # AUR packages (via yay or paru if available)
 # ---------------------------------------------------------------------------
 
@@ -229,6 +285,8 @@ install_codex
 if [[ "${SKIP_GUI:-false}" == "true" ]]; then
   cachyos_extra_info "Skipping desktop apps (--skip-gui)"
 else
+  # Must precede the AUR installs below -- they are no-ops without a helper.
+  install_yay
   install_vscode
   install_zoom
 fi
