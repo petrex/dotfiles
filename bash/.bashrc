@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 
-if [ "$(arch)" = arm64 ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-else
-  eval "$(/usr/local/bin/brew shellenv)"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    brew_bin="/opt/homebrew/bin/brew"
+  else
+    brew_bin="/usr/local/bin/brew"
+  fi
+
+  if [[ -x "${brew_bin}" ]]; then
+    eval "$("${brew_bin}" shellenv)"
+  fi
+  unset brew_bin
 fi
 
 export EDITOR="nvim"
