@@ -45,9 +45,12 @@ SKIP_PACKAGES=false
 # so the per-distro extra scripts gate their GUI installs on the same flag.
 SKIP_GUI=false
 
-# Optional Claude skills — chosen by the user in choose_claude_skills()
+# Optional agent skills — chosen by the user in choose_agent_skills(),
+# separately for Claude Code and Codex
 INSTALL_GSTACK=false
 SELECTED_PLUGIN_ENTRIES=()
+INSTALL_GSTACK_CODEX=false
+SELECTED_CODEX_PLUGIN_ENTRIES=()
 
 # Platform globals — set in preflight()
 OS=""      # "macos" | "linux"
@@ -159,9 +162,10 @@ Bootstrap a fresh macOS, Ubuntu, or CachyOS/Arch machine from zero.
 Installs prerequisites, clones dotfiles, runs setup.sh, installs language
 runtimes, and configures the default shell.
 
-Optional Claude skills (gstack, ecc, karpathy-skills, last30days, pstack,
-mattpocock-skills) are offered at the start; each is installed only if you
-say yes. Without a terminal, none are installed.
+Optional agent skills (gstack, ecc, karpathy-skills, last30days, pstack,
+mattpocock-skills) are offered at the start, separately for Claude Code and
+Codex; each is installed only if you say yes. Without a terminal, none are
+installed.
 
 Supported platforms:
   macOS (Apple Silicon + Intel) — uses Homebrew
@@ -1192,13 +1196,13 @@ install_zap() {
 }
 
 # ---------------------------------------------------------------------------
-# Phase 10: gstack (Garry Tan's Claude Code skill suite)
+# Phase 10: gstack (Garry Tan's skill suite, for Claude Code and/or Codex)
 # ---------------------------------------------------------------------------
 
 install_gstack() {
   bootstrap_echo "Phase 10: gstack"
 
-  if [[ "${INSTALL_GSTACK}" != "true" ]]; then
+  if [[ "${INSTALL_GSTACK}" != "true" && "${INSTALL_GSTACK_CODEX}" != "true" ]]; then
     bootstrap_info "gstack not selected — skipping"
     return
   fi
@@ -1260,30 +1264,42 @@ install_gstack() {
       "Clone gstack repo"
   fi
 
-  # Run gstack's installer
-  if [[ "${DRY_RUN}" == "true" ]]; then
-    bootstrap_info "[DRY RUN] Would run gstack ./setup"
-  elif [[ -x "${gstack_dir}/setup" ]]; then
-    bootstrap_info "Running gstack setup..."
-    (cd "${gstack_dir}" && ./setup) || bootstrap_warn "gstack setup encountered errors"
-  else
-    bootstrap_warn "gstack setup script not found at %s/setup" "${gstack_dir}"
-  fi
+  # Run gstack's installer once per selected agent. One checkout serves both;
+  # an explicit --host never changes another host's install.
+  local -a setup_args=()
+  [[ "${INSTALL_GSTACK}" == "true" ]] && setup_args+=("./setup|Claude Code")
+  [[ "${INSTALL_GSTACK_CODEX}" == "true" ]] && setup_args+=("./setup --host codex|Codex")
+
+  local item setup_cmd agent
+  for item in "${setup_args[@]}"; do
+    setup_cmd="${item%%|*}"
+    agent="${item#*|}"
+    if [[ "${DRY_RUN}" == "true" ]]; then
+      bootstrap_info "[DRY RUN] Would run gstack %s for %s" "${setup_cmd}" "${agent}"
+    elif [[ -x "${gstack_dir}/setup" ]]; then
+      bootstrap_info "Running gstack setup for %s..." "${agent}"
+      (cd "${gstack_dir}" && ${setup_cmd}) || bootstrap_warn "gstack setup for %s encountered errors" "${agent}"
+    else
+      bootstrap_warn "gstack setup script not found at %s/setup" "${gstack_dir}"
+    fi
+  done
 }
 
 # ---------------------------------------------------------------------------
-# Phase 11: Claude Code plugins (marketplaces + skill bundles)
+# Phase 11: Claude Code plugins / Phase 12: Codex plugins
 # ---------------------------------------------------------------------------
 #
 # Each entry is "marketplace-name:github-owner/repo:plugin@marketplace:description".
 # The description is shown when asking the user; it may contain colons.
-# Every entry is optional: choose_claude_skills() asks which ones to install.
+# Every entry is optional: choose_agent_skills() asks which ones to install,
+# separately for Claude Code and Codex. Codex reads the same
+# .claude-plugin/marketplace.json, so one entry serves both agents.
 
 # A marketplace and its plugins are named by the repo's own
 # .claude-plugin/marketplace.json, which need not match the repo name --
 # affaan-m/everything-claude-code declares both as "ecc". Verify against that
 # manifest when adding an entry rather than assuming the repo name.
-CLAUDE_PLUGIN_ENTRIES=(
+AGENT_PLUGIN_ENTRIES=(
   "ecc:affaan-m/everything-claude-code:ecc@ecc:Everything Claude Code — agents, commands, hooks and skills"
   "karpathy-skills:forrestchang/andrej-karpathy-skills:andrej-karpathy-skills@karpathy-skills:Andrej Karpathy's coding behavior guidelines"
   "last30days-skill:mvanhorn/last30days-skill:last30days@last30days-skill:Research what happened on a topic in the last 30 days"
@@ -1295,50 +1311,70 @@ has_tty() {
   [[ -t 0 ]]
 }
 
-# Ask up front which optional Claude skills to install, so the long phases
-# after it still run unattended. Without a terminal nothing is installed.
-choose_claude_skills() {
-  bootstrap_echo "Optional Claude skills"
+# Ask which skills one agent should get. Sets CHOSEN_GSTACK and CHOSEN_PLUGINS.
+ask_agent_skills() {
+  local agent="$1" entry spec mode answer
+  CHOSEN_GSTACK=false
+  CHOSEN_PLUGINS=()
+
+  printf 'Install these for %s? [a]ll / [n]one / [c]hoose each (default: c): ' "${agent}"
+  read -r mode || mode=""
+  case "${mode}" in
+    a | A)
+      CHOSEN_GSTACK=true
+      CHOSEN_PLUGINS=("${AGENT_PLUGIN_ENTRIES[@]}")
+      ;;
+    n | N) ;;
+    *)
+      printf 'Install gstack for %s? [y/N] ' "${agent}"
+      read -r answer || answer=""
+      [[ "${answer}" =~ ^[yY] ]] && CHOSEN_GSTACK=true
+      for entry in "${AGENT_PLUGIN_ENTRIES[@]}"; do
+        IFS=: read -r _ _ spec _ <<<"${entry}"
+        printf 'Install %s for %s? [y/N] ' "${spec%@*}" "${agent}"
+        read -r answer || answer=""
+        [[ "${answer}" =~ ^[yY] ]] && CHOSEN_PLUGINS+=("${entry}")
+      done
+      ;;
+  esac
+  return 0
+}
+
+# Ask up front which optional skills to install for Claude Code and for Codex,
+# so the long phases after it still run unattended. Without a terminal nothing
+# is installed.
+choose_agent_skills() {
+  bootstrap_echo "Optional agent skills"
 
   INSTALL_GSTACK=false
   SELECTED_PLUGIN_ENTRIES=()
+  INSTALL_GSTACK_CODEX=false
+  SELECTED_CODEX_PLUGIN_ENTRIES=()
 
   if ! has_tty; then
-    bootstrap_warn "No terminal available — skipping optional Claude skills (gstack, plugins)."
+    bootstrap_warn "No terminal available — skipping optional agent skills (gstack, plugins)."
     bootstrap_warn "Re-run ./scripts/bootstrap.sh from a terminal to choose them."
     return
   fi
 
-  local entry spec desc mode answer
+  local entry spec desc
   echo "  gstack: Garry Tan's skill suite (review, QA, ship, design); installs bun"
-  for entry in "${CLAUDE_PLUGIN_ENTRIES[@]}"; do
+  for entry in "${AGENT_PLUGIN_ENTRIES[@]}"; do
     IFS=: read -r _ _ spec desc <<<"${entry}"
     printf '  %s: %s\n' "${spec%@*}" "${desc}"
   done
 
-  printf 'Install these? [a]ll / [n]one / [c]hoose each (default: c): '
-  read -r mode || mode=""
-  case "${mode}" in
-    a | A)
-      INSTALL_GSTACK=true
-      SELECTED_PLUGIN_ENTRIES=("${CLAUDE_PLUGIN_ENTRIES[@]}")
-      ;;
-    n | N) ;;
-    *)
-      printf 'Install gstack? [y/N] '
-      read -r answer || answer=""
-      [[ "${answer}" =~ ^[yY] ]] && INSTALL_GSTACK=true
-      for entry in "${CLAUDE_PLUGIN_ENTRIES[@]}"; do
-        IFS=: read -r _ _ spec desc <<<"${entry}"
-        printf 'Install %s? [y/N] ' "${spec%@*}"
-        read -r answer || answer=""
-        [[ "${answer}" =~ ^[yY] ]] && SELECTED_PLUGIN_ENTRIES+=("${entry}")
-      done
-      ;;
-  esac
+  ask_agent_skills "Claude Code"
+  INSTALL_GSTACK="${CHOSEN_GSTACK}"
+  SELECTED_PLUGIN_ENTRIES=("${CHOSEN_PLUGINS[@]}")
 
-  bootstrap_info "gstack: %s; plugins selected: %s" \
-    "${INSTALL_GSTACK}" "${#SELECTED_PLUGIN_ENTRIES[@]}"
+  ask_agent_skills "Codex"
+  INSTALL_GSTACK_CODEX="${CHOSEN_GSTACK}"
+  SELECTED_CODEX_PLUGIN_ENTRIES=("${CHOSEN_PLUGINS[@]}")
+
+  bootstrap_info "Claude Code — gstack: %s, plugins: %s; Codex — gstack: %s, plugins: %s" \
+    "${INSTALL_GSTACK}" "${#SELECTED_PLUGIN_ENTRIES[@]}" \
+    "${INSTALL_GSTACK_CODEX}" "${#SELECTED_CODEX_PLUGIN_ENTRIES[@]}"
 }
 
 # macOS gets the claude CLI from the Brewfile (cask "claude-code@latest").
@@ -1411,7 +1447,7 @@ install_claude_plugins() {
     if grep -qE "^[^[:alnum:]]*${market_name}[[:space:]]*$" <<<"${existing_markets}"; then
       bootstrap_info "Marketplace already registered: %s" "${market_name}"
     else
-      # A single bad plugin should not abort the phase, or Phase 12 never runs.
+      # A single bad plugin should not abort the phase, or the later phases never run.
       run_cmd "claude plugin marketplace add '${repo}'" \
         "Register Claude Code marketplace ${market_name}" \
         || bootstrap_warn "Could not add marketplace %s from %s" "${market_name}" "${repo}"
@@ -1428,12 +1464,60 @@ install_claude_plugins() {
   done
 }
 
+# Codex installs the same marketplaces and plugins as Claude Code. Its CLI comes
+# from Phase 8 on every platform (Brewfile cask, or npm in the distro extras).
+install_codex_plugins() {
+  bootstrap_echo "Phase 12: Codex plugins"
+
+  if [[ ${#SELECTED_CODEX_PLUGIN_ENTRIES[@]} -eq 0 ]]; then
+    bootstrap_info "No Codex plugins selected — skipping"
+    return
+  fi
+
+  if ! command -v codex &>/dev/null; then
+    bootstrap_warn "codex CLI not found on PATH — skipping Codex plugin installation"
+    return
+  fi
+
+  local existing_markets=""
+  local existing_plugins=""
+  if [[ "${DRY_RUN}" == "false" ]]; then
+    existing_markets="$(codex plugin marketplace list 2>/dev/null || true)"
+    existing_plugins="$(codex plugin list 2>/dev/null || true)"
+  fi
+
+  local entry market_name repo plugin_spec _desc
+  for entry in "${SELECTED_CODEX_PLUGIN_ENTRIES[@]}"; do
+    IFS=: read -r market_name repo plugin_spec _desc <<<"${entry}"
+
+    # `codex plugin marketplace list` prints "NAME  ROOT" rows.
+    if grep -qE "^${market_name}[[:space:]]" <<<"${existing_markets}"; then
+      bootstrap_info "Codex marketplace already registered: %s" "${market_name}"
+    else
+      run_cmd "codex plugin marketplace add '${repo}'" \
+        "Register Codex marketplace ${market_name}" \
+        || bootstrap_warn "Could not add Codex marketplace %s from %s" "${market_name}" "${repo}"
+    fi
+
+    # `codex plugin list` prints "SPEC  STATUS ..." rows; STATUS for an
+    # absent plugin is "not installed", so anchor on "installed" directly.
+    if grep -qE "^${plugin_spec}[[:space:]]+installed" <<<"${existing_plugins}"; then
+      bootstrap_info "Codex plugin already installed: %s" "${plugin_spec}"
+    else
+      run_cmd "codex plugin add '${plugin_spec}'" \
+        "Install Codex plugin ${plugin_spec}" \
+        || bootstrap_warn "Could not install Codex plugin %s — check that it exists in marketplace %s" \
+          "${plugin_spec}" "${market_name}"
+    fi
+  done
+}
+
 # ---------------------------------------------------------------------------
-# Phase 12: Summary
+# Phase 13: Summary
 # ---------------------------------------------------------------------------
 
 show_summary() {
-  bootstrap_echo "Phase 12: Bootstrap complete!"
+  bootstrap_echo "Phase 13: Bootstrap complete!"
 
   cat <<'EOF'
 
@@ -1453,7 +1537,7 @@ EOF
 main() {
   parse_args "$@"
   preflight
-  choose_claude_skills
+  choose_agent_skills
 
   install_build_tools
   install_rosetta
@@ -1466,6 +1550,7 @@ main() {
   setup_zsh
   install_gstack
   install_claude_plugins
+  install_codex_plugins
   show_summary
 
   stop_sudo_keepalive
