@@ -150,6 +150,7 @@ cask "google-drive"
 # cask "hazel"                    # disabled
 cask "istat-menus"
 cask "iterm2"
+cask "keka"
 # cask "kitty"                    # not needed — using ghostty
 # cask "loom"                     # not needed — screen recording
 cask "moonlight"
