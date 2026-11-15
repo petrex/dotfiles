@@ -414,19 +414,22 @@ setup_tmux() {
     else
       dotfiles_info "Custom terminfo entries already installed"
     fi
+  else
+    dotfiles_info "Tmux not found - skipping terminfo setup"
+  fi
 
-    if [ ! -d "${DOTFILES}/tmux/.config/tmux/plugins" ]; then
-      dotfiles_echo "Installing Tmux Plugin Manager..."
-      if [[ "${DRY_RUN}" == "true" ]]; then
-        dotfiles_info "[DRY RUN] Would clone TPM to: %s" "${DOTFILES}/tmux/.config/tmux/plugins/tpm"
-      else
-        run_command "git clone https://github.com/tmux-plugins/tpm '${DOTFILES}/tmux/.config/tmux/plugins/tpm'" "Install Tmux Plugin Manager"
-      fi
+  # TPM only needs git, so install it even before tmux exists: bootstrap.sh
+  # runs this script (Phase 5) before tmux is installed (Phase 8).
+  local tpm_dir="${DOTFILES}/tmux/.config/tmux/plugins/tpm"
+  if [ ! -d "${tpm_dir}" ]; then
+    dotfiles_echo "Installing Tmux Plugin Manager..."
+    if [[ "${DRY_RUN}" == "true" ]]; then
+      dotfiles_info "[DRY RUN] Would clone TPM to: %s" "${tpm_dir}"
     else
-      dotfiles_info "Tmux Plugin Manager already installed"
+      run_command "git clone https://github.com/tmux-plugins/tpm '${tpm_dir}'" "Install Tmux Plugin Manager"
     fi
   else
-    dotfiles_info "Tmux not found - skipping tmux setup"
+    dotfiles_info "Tmux Plugin Manager already installed"
   fi
 }
 
