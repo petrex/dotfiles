@@ -26,6 +26,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scrip
 
 `scripts/bootstrap.sh` handles everything: prerequisites (Xcode CLI tools / `base-devel` / build-essential), Homebrew or pacman/apt, repo clone into `~/dotfiles`, stow symlinks, asdf + language runtimes, package install (Brewfile / `pacman.txt` / `apt.txt`), and zsh as the default shell. Safe to re-run (idempotent).
 
+At the start it asks which optional Claude skills to install — all, none, or each one: [gstack](https://github.com/garrytan/gstack), [ecc](https://github.com/affaan-m/everything-claude-code), [karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills), [last30days](https://github.com/mvanhorn/last30days-skill), [pstack](https://github.com/cursor/plugins/tree/main/pstack) and [mattpocock-skills](https://github.com/mattpocock/skills). Without a terminal, none are installed.
+
 ```bash
 # Preview without making changes
 bash <(curl -fsSL https://raw.githubusercontent.com/petrex/dotfiles/master/scripts/bootstrap.sh) --dry-run

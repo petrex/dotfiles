@@ -45,6 +45,10 @@ SKIP_PACKAGES=false
 # so the per-distro extra scripts gate their GUI installs on the same flag.
 SKIP_GUI=false
 
+# Optional Claude skills — chosen by the user in choose_claude_skills()
+INSTALL_GSTACK=false
+SELECTED_PLUGIN_ENTRIES=()
+
 # Platform globals — set in preflight()
 OS=""      # "macos" | "linux"
 DISTRO=""  # "macos" | "ubuntu" | "cachyos" | "arch"
@@ -154,6 +158,10 @@ Usage: $0 [OPTIONS]
 Bootstrap a fresh macOS, Ubuntu, or CachyOS/Arch machine from zero.
 Installs prerequisites, clones dotfiles, runs setup.sh, installs language
 runtimes, and configures the default shell.
+
+Optional Claude skills (gstack, ecc, karpathy-skills, last30days, pstack,
+mattpocock-skills) are offered at the start; each is installed only if you
+say yes. Without a terminal, none are installed.
 
 Supported platforms:
   macOS (Apple Silicon + Intel) — uses Homebrew
@@ -1190,6 +1198,11 @@ install_zap() {
 install_gstack() {
   bootstrap_echo "Phase 10: gstack"
 
+  if [[ "${INSTALL_GSTACK}" != "true" ]]; then
+    bootstrap_info "gstack not selected — skipping"
+    return
+  fi
+
   local gstack_repo="https://github.com/garrytan/gstack.git"
   local gstack_dir="${HOME}/.claude/skills/gstack"
 
@@ -1262,19 +1275,71 @@ install_gstack() {
 # Phase 11: Claude Code plugins (marketplaces + skill bundles)
 # ---------------------------------------------------------------------------
 #
-# Each entry is "marketplace-name:github-owner/repo:plugin@marketplace".
-# Mirrors the user-scope plugins recorded in
-# ~/.claude/plugins/installed_plugins.json and known_marketplaces.json.
+# Each entry is "marketplace-name:github-owner/repo:plugin@marketplace:description".
+# The description is shown when asking the user; it may contain colons.
+# Every entry is optional: choose_claude_skills() asks which ones to install.
 
 # A marketplace and its plugins are named by the repo's own
 # .claude-plugin/marketplace.json, which need not match the repo name --
 # affaan-m/everything-claude-code declares both as "ecc". Verify against that
 # manifest when adding an entry rather than assuming the repo name.
 CLAUDE_PLUGIN_ENTRIES=(
-  "ecc:affaan-m/everything-claude-code:ecc@ecc"
-  "karpathy-skills:forrestchang/andrej-karpathy-skills:andrej-karpathy-skills@karpathy-skills"
-  "last30days-skill:mvanhorn/last30days-skill:last30days@last30days-skill"
+  "ecc:affaan-m/everything-claude-code:ecc@ecc:Everything Claude Code — agents, commands, hooks and skills"
+  "karpathy-skills:forrestchang/andrej-karpathy-skills:andrej-karpathy-skills@karpathy-skills:Andrej Karpathy's coding behavior guidelines"
+  "last30days-skill:mvanhorn/last30days-skill:last30days@last30days-skill:Research what happened on a topic in the last 30 days"
+  "cursor-plugins:cursor/plugins:pstack@cursor-plugins:Cursor's pstack — rigorous agent workflows you can parallelize"
+  "mattpocock:mattpocock/skills:mattpocock-skills@mattpocock:Matt Pocock's engineering skills (TDD, specs, code review)"
 )
+
+has_tty() {
+  [[ -t 0 ]]
+}
+
+# Ask up front which optional Claude skills to install, so the long phases
+# after it still run unattended. Without a terminal nothing is installed.
+choose_claude_skills() {
+  bootstrap_echo "Optional Claude skills"
+
+  INSTALL_GSTACK=false
+  SELECTED_PLUGIN_ENTRIES=()
+
+  if ! has_tty; then
+    bootstrap_warn "No terminal available — skipping optional Claude skills (gstack, plugins)."
+    bootstrap_warn "Re-run ./scripts/bootstrap.sh from a terminal to choose them."
+    return
+  fi
+
+  local entry spec desc mode answer
+  echo "  gstack: Garry Tan's skill suite (review, QA, ship, design); installs bun"
+  for entry in "${CLAUDE_PLUGIN_ENTRIES[@]}"; do
+    IFS=: read -r _ _ spec desc <<<"${entry}"
+    printf '  %s: %s\n' "${spec%@*}" "${desc}"
+  done
+
+  printf 'Install these? [a]ll / [n]one / [c]hoose each (default: c): '
+  read -r mode || mode=""
+  case "${mode}" in
+    a | A)
+      INSTALL_GSTACK=true
+      SELECTED_PLUGIN_ENTRIES=("${CLAUDE_PLUGIN_ENTRIES[@]}")
+      ;;
+    n | N) ;;
+    *)
+      printf 'Install gstack? [y/N] '
+      read -r answer || answer=""
+      [[ "${answer}" =~ ^[yY] ]] && INSTALL_GSTACK=true
+      for entry in "${CLAUDE_PLUGIN_ENTRIES[@]}"; do
+        IFS=: read -r _ _ spec desc <<<"${entry}"
+        printf 'Install %s? [y/N] ' "${spec%@*}"
+        read -r answer || answer=""
+        [[ "${answer}" =~ ^[yY] ]] && SELECTED_PLUGIN_ENTRIES+=("${entry}")
+      done
+      ;;
+  esac
+
+  bootstrap_info "gstack: %s; plugins selected: %s" \
+    "${INSTALL_GSTACK}" "${#SELECTED_PLUGIN_ENTRIES[@]}"
+}
 
 # macOS gets the claude CLI from the Brewfile (cask "claude-code@latest").
 # Linux had no install path at all — neither apt.txt, pacman.txt, nor the
@@ -1313,6 +1378,11 @@ install_claude_cli() {
 install_claude_plugins() {
   bootstrap_echo "Phase 11: Claude Code plugins"
 
+  if [[ ${#SELECTED_PLUGIN_ENTRIES[@]} -eq 0 ]]; then
+    bootstrap_info "No Claude Code plugins selected — skipping"
+    return
+  fi
+
   if ! command -v claude &>/dev/null; then
     if [[ "${OS}" == "linux" ]]; then
       install_claude_cli || true
@@ -1332,11 +1402,9 @@ install_claude_plugins() {
     existing_plugins="$(claude plugin list 2>/dev/null || true)"
   fi
 
-  for entry in "${CLAUDE_PLUGIN_ENTRIES[@]}"; do
-    local market_name="${entry%%:*}"
-    local rest="${entry#*:}"
-    local repo="${rest%%:*}"
-    local plugin_spec="${rest#*:}"
+  local entry market_name repo plugin_spec _desc
+  for entry in "${SELECTED_PLUGIN_ENTRIES[@]}"; do
+    IFS=: read -r market_name repo plugin_spec _desc <<<"${entry}"
 
     # Match the marketplace name as a whole list entry. A bare substring test
     # can match a fragment of another marketplace's name or its source repo.
@@ -1385,6 +1453,7 @@ EOF
 main() {
   parse_args "$@"
   preflight
+  choose_claude_skills
 
   install_build_tools
   install_rosetta
