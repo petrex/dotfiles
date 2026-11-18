@@ -4,7 +4,7 @@ Create and execute git commits with full automation.
 
 ## Command Options
 
-- `--no-verify`: Skip running the pre-commit checks (lint, build, generate:docs)
+- `--no-verify`: Skip the pre-commit verification reminder (step 4) and pass `--no-verify` to `git commit`, which skips git hooks
 
 ## Your task
 

@@ -32,12 +32,11 @@ sessions to a personal knowledge base.
 ## Your Task
 
 1. **Determine save location**:
-   - Check if `$PKB_PATH` environment variable is set
-   - Default to `~/personal-knowledge-base/` if not set
-   - ONLY IF the basic directory structure doesn't exist, create it using this command:
+   - Use `$PKB_PATH` if set, otherwise `~/personal-knowledge-base/`
+   - Only if the basic directory structure doesn't exist, create it:
 
    ```bash
-   mkdir -p "$PKB_PATH"/{.config,inbox/{web-articles,videos,documents},topics/{development,troubleshooting,commands,tools,insights},sessions}
+   mkdir -p "${PKB_PATH:-$HOME/personal-knowledge-base}"/{.config,inbox/{web-articles,videos,documents},topics/{development,troubleshooting,commands,tools,insights},sessions}
    ```
 
 2. **Analyze recent conversation**:

@@ -11,11 +11,10 @@ debugging across all projects.
    mkdir -p scratchpads/{pr-reviews,planning,debugging,notes}
    ```
 
-2. **Update .gitignore**:
+2. **Update .gitignore**: If `scratchpads/` is not already listed, append it:
 
    ```bash
-   echo "# Scratchpads for temporary files, notes, and debugging" >> .gitignore
-   echo "scratchpads/" >> .gitignore
+   grep -qxF 'scratchpads/' .gitignore 2>/dev/null || printf '%s\n' '# Scratchpads for temporary files, notes, and debugging' 'scratchpads/' >> .gitignore
    ```
 
 3. **Create CLAUDE.md for AI agent context**:
@@ -33,28 +32,6 @@ debugging across all projects.
    - **planning/**: Brainstorming, rough ideas, and meeting notes
    - **debugging/**: Debug sessions and troubleshooting
    - **notes/**: General development notes and research
-
-   ## When Agent OS is Present
-
-   If this project also has a `.agent-os/` directory:
-
-   - **Use scratchpads/planning/** for:
-     - Initial brainstorming and ideation
-     - Rough drafts and exploration
-     - Meeting notes and discussions
-     - Ideas that may not become formal specs
-
-   - **Use .agent-os/specs/** for:
-     - Formal feature specifications
-     - Structured development plans
-     - Committed, trackable documentation
-     - Specs ready for execution
-
-   ## Workflow
-
-   | Temporary             | →   | Permanent        | →   | Code           |
-   | --------------------- | --- | ---------------- | --- | -------------- |
-   | scratchpads/planning/ | →   | .agent-os/specs/ | →   | implementation |
 
    ## File Naming
 

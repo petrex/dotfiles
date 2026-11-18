@@ -4,12 +4,9 @@ Systematically resolve GitHub issues with a comprehensive workflow that handles 
 
 ## Your task
 
-**CRITICAL: Use TodoWrite tool to track all 6 steps before beginning**
-Create todo items for: Get issue details → Research → Plan → Implement → Verify → Report Back
-Mark each as completed only when fully finished.
+Track progress through the six steps below (Get issue details → Research → Plan → Implement → Verify → Report Back), marking each complete only when it is fully finished.
 
-**IMPORTANT: Progress Reporting**
-After completing each major step, provide a brief summary of what was accomplished before moving to the next step.
+After each major step, give a brief summary of what was accomplished before moving to the next one.
 
 Follow steps 1-6 below for thorough issue resolution.
 
@@ -46,19 +43,7 @@ Follow steps 1-6 below for thorough issue resolution.
    - Follow commit standards from global CLAUDE.md
    - **IMPORTANT**: Do NOT include issue references (like "Closes #$ARGUMENTS") in commit messages
 
-   **MANDATORY: Multiple Commit Strategy**
-
-   GitHub issues require multiple commits. Commit frequently using these rules:
-   1. **Commit every major component** - Don't wait until everything is done
-   2. **Commit when you reach 30-50 lines** of changes across files
-   3. **Each commit must be working code** - no broken states
-   4. **Typical range: 3-8 commits** for most GitHub issues
-
-   **When to commit:**
-   - Added new files or major functionality ✅ COMMIT
-   - Modified configuration or setup ✅ COMMIT
-   - Completed a logical piece (model, controller, view, test) ✅ COMMIT
-   - Written 30+ lines of code ✅ COMMIT NOW
+   **Commit strategy**: Commit each logically complete piece (new files or functionality, a configuration change, a model/controller/view/test) as you finish it rather than waiting until the end. Each commit must leave the code working. Small issues may need only one commit; substantial work usually spans several, so reviewers can follow the change step by step.
 
 5. **Verify solution after final checkpoint**:
    - **CHECKPOINT 1**: Run `git log --oneline` and confirm commits exist
@@ -157,10 +142,9 @@ Follow global CLAUDE.md standards:
 
 ## Integration with Other Commands
 
-- **TodoWrite tool**: Required for tracking all 6 workflow steps with progress visibility
 - **`/create-pr`**: Recommended for PR creation with `--issue $ARGUMENTS` flag for automatic linking
 - **`/setup-scratch`**: Referenced for workspace organization and scratchpad management
 - **`/review-pr`**: Integrates with PR review workflow after implementation
-- **`claude/.claude/CLAUDE.md`**: Follows commit standards and branch naming conventions
+- **Global `~/.claude/CLAUDE.md`**: Follows commit standards and branch naming conventions
 - **Git workflow**: Enhanced checkpoint system ensures reliable branch management and multi-commit strategy
 - **Scratchpad system**: Structured documentation in `scratchpads/` with categorized subfolders for debugging, planning, and notes

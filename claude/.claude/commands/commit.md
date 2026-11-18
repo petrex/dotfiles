@@ -4,7 +4,7 @@ Create git commits with intelligent message generation - Claude Code handles ana
 
 ## Command Options
 
-- `--no-verify`: Skip running the pre-commit checks (lint, build, generate:docs)
+- `--no-verify`: Skip the pre-commit verification reminder (step 4)
 
 ## Your task
 

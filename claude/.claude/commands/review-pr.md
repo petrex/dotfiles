@@ -36,7 +36,7 @@ Review GitHub pull requests with configurable depth and focus.
    **Standard Review** (default):
    - Focus on blocking issues from comments and failed checks
    - Basic code quality and logic review
-   - **Verify issue reference**: Refer to the [CLAUDE.md](../../CLAUDE.md) file for the standard format and guidelines.
+   - **Verify issue reference**: Refer to the global `~/.claude/CLAUDE.md` (Git Workflow → Issue References) for the standard format.
    - Verify other PR metadata (title format, description completeness)
 
    **Quick Review** (`--quick`):
@@ -180,7 +180,7 @@ gh pr diff $ARGUMENTS --name-only
 
 ## Integration with Global Standards
 
-Follow PR review best practices from global CLAUDE.md:
+Review practices:
 
 - Focus on actionable feedback
 - Reference security principles

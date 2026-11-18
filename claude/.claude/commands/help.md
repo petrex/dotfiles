@@ -47,7 +47,7 @@ Display available Claude Code commands and their usage.
 
 ### Development Tools
 
-- `/debug-tests` - Debug failing tests systematically (coming soon)
+- `/test-drive` - Create a hands-on guide for trying a newly implemented feature
 - `/help` - Display this help information
 
 ## Output Format
@@ -70,6 +70,9 @@ Project Management:
   /new-project         - Comprehensive project setup (use after /init)
   /update-deps         - Update dependencies safely
   /context-bridge      - Create session continuity documents
+
+Development Tools:
+  /test-drive          - Create a hands-on guide for a new feature
 
 Knowledge Management:
   /save-knowledge      - Capture session insights
@@ -96,7 +99,7 @@ Examples:
   /commit --no-verify     - Skip pre-commit hooks
 
 
-See `claude/.claude/CLAUDE.md` for commit standards and best practices.
+See `~/.claude/CLAUDE.md` for commit standards and best practices.
 ```
 
 ### Category view
@@ -116,11 +119,11 @@ Git & GitHub Commands
 
 /create-pr
   Create pull requests with smart titles and issue linking
-  Options: --draft, --skip-issue-link
+  Options: --issue N, --skip-issue-link, --draft-pr
 
 /resolve-issue
-  Resolve GitHub issues systematically with optional complexity modes
-  Options: --quick, --draft-pr
+  Resolve GitHub issues systematically
+  Usage: /resolve-issue <issue-number>
 
 /review-pr
   Review pull requests with configurable depth and focus
@@ -147,7 +150,6 @@ When showing specific command help, read the command's markdown file and extract
 
 - Reference global CLAUDE.md for overarching principles
 - Note command aliases where available
-- Indicate which commands are coming soon
 - Link related commands (e.g., resolve-issue uses create-pr)
 
 ## Future Enhancement
