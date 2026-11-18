@@ -22,7 +22,7 @@ Create a pull request from the current branch with proper formatting and issue l
    - Follow Conventional Commits format from global CLAUDE.md
 
 3. **Analyze commits for description**:
-   - Get commit history: `git log origin/main..HEAD --oneline`
+   - Get commit history: `git log origin/<base>..HEAD --oneline` (base is main or master)
    - Group commits by type (feat, fix, docs, etc.)
    - Identify patterns and overall theme
 

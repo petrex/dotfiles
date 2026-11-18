@@ -203,7 +203,6 @@ Check for these files to auto-detect project type:
 
 ## Integration with Global Standards
 
-- Follow directory structure conventions from global CLAUDE.md
 - Apply security principles (no secrets in commits)
 - Set up testing infrastructure by default
 - Use consistent formatting standards
